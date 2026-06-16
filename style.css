@@ -956,11 +956,6 @@ img { display: block; max-width: 100%; }
   .toolkit-bubbles { max-width: 100%; }
 }
 
-@media (max-width: 860px) {
-  .exp-layout { grid-template-columns: 1fr; }
-  .exp-content { padding: 60px 24px; }
-  .exp-visual { display: none; }
-}
 
 /* ── Projects ─────────────────────────────────────────────── */
 .projects-section { background: var(--bg); padding-bottom: 0; }
@@ -1538,6 +1533,12 @@ img { display: block; max-width: 100%; }
   .contact-two-col { grid-template-columns: 1fr; }
   .contact-inner { padding: 0 24px; }
   .contact-planet-wrap { display: none; }
+
+  /* Experience: collapse to single column on mobile. These must live
+     AFTER the base .exp-layout rule or the desktop grid wins. */
+  .exp-layout { grid-template-columns: 1fr; min-height: 0; }
+  .exp-content { padding: 64px 24px; }
+  .exp-visual { display: none; }
 }
 
 /* ── Footer ───────────────────────────────────────────────── */
@@ -1591,6 +1592,13 @@ img { display: block; max-width: 100%; }
 }
 .sig-text {
   filter: drop-shadow(0 0 6px rgba(255,255,255,0.08));
+  /* Keep the outline a constant crisp width regardless of how far the
+     SVG scales down — avoids sub-pixel stroke doubling on mobile. */
+  vector-effect: non-scaling-stroke;
+}
+@media (max-width: 680px) {
+  /* Drop the glow halo on mobile so the thin outline stays clean */
+  .sig-text { filter: none; }
 }
 
 /* ── Footer ───────────────────────────────────────────────── */

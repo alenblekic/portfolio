@@ -73,8 +73,8 @@ function initCertTilt() {
     });
   });
 
-  /* Spotlight only (no tilt) — education card */
-  document.querySelectorAll('.edu-card').forEach(card => {
+  /* Spotlight only (no tilt) — education + experience cards */
+  document.querySelectorAll('.edu-card, .timeline-content').forEach(card => {
     card.addEventListener('mousemove', e => {
       const r = card.getBoundingClientRect();
       card.style.setProperty('--mx', `${((e.clientX - r.left) / r.width) * 100}%`);

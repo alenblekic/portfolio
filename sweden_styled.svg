@@ -1,0 +1,38 @@
+<svg class="sweden-svg" viewBox="0 0 346 793" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="sweden-glow" x="-10%" y="-5%" width="120%" height="110%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <path id="county-blekinge" class="county-path" d="blekinge"/>
+  <path id="county-dalarna" class="county-path" d="dalarna"/>
+  <path id="county-gavleborg" class="county-path" d="gavleborg"/>
+  <path id="county-gotland" class="county-path" d="gotland"/>
+  <path id="county-halland" class="county-path" d="halland"/>
+  <path id="county-jamtland" class="county-path" d="jamtland"/>
+  <path id="county-jonkoping" class="county-path" d="jonkoping"/>
+  <path id="county-kalmar" class="county-path" d="kalmar"/>
+  <path id="county-kronoberg" class="county-path" d="kronoberg"/>
+  <path id="county-norrbotten" class="county-path" d="norrbotten"/>
+  <path id="county-orebro" class="county-path" d="orebro"/>
+  <path id="county-ostergotland" class="county-path" d="ostergotland"/>
+  <path id="county-skane" class="county-path" d="skane"/>
+  <path id="county-sodermanland" class="county-path" d="sodermanland"/>
+  <path id="county-stockholm" class="county-path" d="stockholm"/>
+  <path id="county-uppsala" class="county-path" d="uppsala"/>
+  <path id="county-varmland" class="county-path" d="varmland"/>
+  <path id="county-vasterbotten" class="county-path" d="vasterbotten"/>
+  <path id="county-vasternorrland" class="county-path" d="vasternorrland"/>
+  <path id="county-vastmanland" class="county-path" d="vastmanland"/>
+  <path id="county-vastra gotaland" class="county-path" d="vastra gotaland"/>
+  <circle class="hbg-core" cx="38" cy="755" r="4"/>
+  <circle cx="38" cy="755" fill="none" stroke="#D97757" stroke-width="2">
+    <animate attributeName="r" values="4;18;4" dur="2.4s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.9;0;0.9" dur="2.4s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="38" cy="755" fill="none" stroke="#D97757" stroke-width="1.5">
+    <animate attributeName="r" values="4;26;4" dur="2.4s" begin="0.6s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.6;0;0.6" dur="2.4s" begin="0.6s" repeatCount="indefinite"/>
+  </circle>
+</svg>

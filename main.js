@@ -57,6 +57,15 @@ function initCertTilt() {
       card.style.transform = 'rotateX(0deg) rotateY(0deg) translateZ(0)';
     });
   });
+
+  /* Spotlight only (no tilt) — education card */
+  document.querySelectorAll('.edu-card').forEach(card => {
+    card.addEventListener('mousemove', e => {
+      const r = card.getBoundingClientRect();
+      card.style.setProperty('--mx', `${((e.clientX - r.left) / r.width) * 100}%`);
+      card.style.setProperty('--my', `${((e.clientY - r.top) / r.height) * 100}%`);
+    });
+  });
 }
 
 /* ─────────────────────────────────────────────────────────────

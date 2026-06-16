@@ -1659,6 +1659,20 @@ img { display: block; max-width: 100%; }
   .project-mockup { border-radius: 10px; }
 }
 
+/* Mobile performance: backdrop blur is costly on phone GPUs.
+   The frosted look is barely noticeable at small sizes; solid
+   backgrounds already provide contrast. Desktop is untouched. */
+@media (max-width: 768px) {
+  .cta-card,
+  .clock-card,
+  .skill-bubble,
+  .navbar.scrolled,
+  .nav-links.open {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
 /* Reduce motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

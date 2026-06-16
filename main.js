@@ -34,6 +34,21 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ─────────────────────────────────────────────────────────────
+   PERF: run an animation loop only while its target is on-screen.
+   Invisible on desktop (only pauses when scrolled away); big
+   CPU/battery savings on mobile where many canvases stack up.
+───────────────────────────────────────────────────────── */
+function animateWhenVisible(target, frame) {
+  let raf = null;
+  const loop = () => { frame(); raf = requestAnimationFrame(loop); };
+  const io = new IntersectionObserver(([entry]) => {
+    if (entry.isIntersecting) { if (raf === null) raf = requestAnimationFrame(loop); }
+    else if (raf !== null) { cancelAnimationFrame(raf); raf = null; }
+  }, { threshold: 0 });
+  io.observe(target);
+}
+
+/* ─────────────────────────────────────────────────────────────
    CERTIFICATE CARD 3D TILT (follows cursor)
 ───────────────────────────────────────────────────────── */
 function initCertTilt() {
@@ -202,7 +217,6 @@ function initCtaPulse(cardId = 'cta-card', canvasId = 'cta-canvas') {
   card.addEventListener('mouseleave', () => { mouse.active = false; mouse.x = mouse.y = -999; });
 
   function draw() {
-    requestAnimationFrame(draw);
     if (!w) { resize(); return; }
     ctx.clearRect(0, 0, w, h);
 
@@ -258,7 +272,7 @@ function initCtaPulse(cardId = 'cta-card', canvasId = 'cta-canvas') {
 
   new ResizeObserver(resize).observe(card);
   resize();
-  draw();
+  animateWhenVisible(card, draw);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -410,8 +424,6 @@ function initThreeHero() {
   /* Animate */
   const clock3 = new THREE.Clock();
   function animate() {
-    requestAnimationFrame(animate);
-
     const t = clock3.getElapsedTime();
 
     currentX += (targetX - currentX) * 0.05;
@@ -456,7 +468,7 @@ function initThreeHero() {
 
     renderer.render(scene, camera);
   }
-  animate();
+  animateWhenVisible(canvas, animate);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -890,7 +902,6 @@ function initGlobe() {
   /* Animate */
   const globeClock = new THREE.Clock();
   function animate() {
-    requestAnimationFrame(animate);
     const t = globeClock.getElapsedTime();
 
     if (autoRotate) {
@@ -919,7 +930,7 @@ function initGlobe() {
 
     renderer.render(scene, camera);
   }
-  animate();
+  animateWhenVisible(canvas, animate);
 }
 
 function initSwedenRipple() {
@@ -1043,7 +1054,6 @@ function initSwedenParticles() {
   }
 
   function draw() {
-    raf = requestAnimationFrame(draw);
     if (!w || !h) { resize(); return; }
 
     const ctx = canvas.getContext('2d');
@@ -1075,7 +1085,7 @@ function initSwedenParticles() {
   const ro = new ResizeObserver(() => resize());
   ro.observe(wrap);
   resize();
-  draw();
+  animateWhenVisible(wrap, draw);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -1145,7 +1155,6 @@ function initToolkitParticles() {
   }
 
   function draw() {
-    requestAnimationFrame(draw);
     if (!w) { resize(); return; }
 
     const ctx = canvas.getContext('2d');
@@ -1186,7 +1195,7 @@ function initToolkitParticles() {
 
   new ResizeObserver(() => resize()).observe(circle);
   resize();
-  draw();
+  animateWhenVisible(circle, draw);
 }
 
 
@@ -1333,7 +1342,6 @@ function initRainGrid() {
 
   /* ── Main draw loop ───────────────────────────────────── */
   function draw(ts) {
-    raf = requestAnimationFrame(draw);
     ctx.clearRect(0, 0, W, H);
 
     const now = ts || performance.now();
@@ -1460,7 +1468,7 @@ function initRainGrid() {
   setup();
   setTimeout(randomPulse, 1200);
   setTimeout(randomWave,  3000);
-  requestAnimationFrame(draw);
+  animateWhenVisible(canvas.parentElement, draw);
 }
 
 

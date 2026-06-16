@@ -934,8 +934,26 @@ img { display: block; max-width: 100%; }
 @media (max-width: 680px) {
   .reach-panel, .location-panel { flex-direction: column; min-height: auto; }
   .reach-info, .location-info { border-left: none; border-top: 1px solid var(--border); }
-  .toolkit-circle { width: 300px; height: 300px; }
   .skill-bubble { font-size: 0.72rem; height: 28px; padding: 0 11px; }
+
+  /* Hide the clock card on phones; keep the CTA card */
+  .clock-card { display: none; }
+
+  /* Un-circle the toolkit on mobile so the chips don't spill out of a
+     round 300px shape — render as a normal rounded card instead. */
+  .toolkit-outer { width: 100%; }
+  .toolkit-circle {
+    width: 100%;
+    height: auto;
+    border-radius: 18px;
+    padding: 30px 18px;
+    background: linear-gradient(155deg, rgba(40,16,10,0.35), rgba(12,8,8,0.25));
+  }
+  .crosshair-svg,
+  .glow-ring-svg { display: none; }
+  .toolkit-circle canvas { display: none; }   /* round-clipped particle layer */
+  .toolkit-inner { width: 100%; }
+  .toolkit-bubbles { max-width: 100%; }
 }
 
 @media (max-width: 860px) {
@@ -1670,6 +1688,17 @@ img { display: block; max-width: 100%; }
   .nav-links.open {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+  }
+}
+
+/* Touch devices have no hover — reveal the timeline detail bullets that
+   are otherwise hidden behind a hover state, so experience cards show
+   their content on mobile. Desktop (hover-capable) is unaffected. */
+@media (hover: none) {
+  .timeline-bullets {
+    max-height: none;
+    opacity: 1;
+    margin-top: 14px;
   }
 }
 

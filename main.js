@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initAboutSlideshow();
   initMobileNav();
   initPipelineAnimation();
+  initAuditMockup();
   initGlobe();
   initSwedenParticles();
   initToolkitParticles();
@@ -637,19 +638,26 @@ function initScrollAnimations() {
 ───────────────────────────────────────────────────────── */
 const PROJECTS = [
   {
-    counter: '01 / 03',
+    counter: '01 / 04',
+    name: 'Auditly Pro — AI-Powered Website Audit Tool',
+    desc: 'Full-stack AI web app that scrapes any landing page and returns a scored audit across Conversion, SEO, and UX, plus the 5 highest-impact fixes referencing the real page content. Hybrid engine: deterministic SEO checks + Claude judgment, streamed live progress, Redis-cached shareable reports, with SSRF guards and per-IP rate limiting.',
+    tags: ['Next.js 15', 'TypeScript', 'Claude', 'Firecrawl', 'Redis', 'Vercel'],
+    link: 'https://auditly-pro.vercel.app/',
+  },
+  {
+    counter: '02 / 04',
     name: 'Voiceflow Lead Capture &amp; Automation Agent',
     desc: 'Full conversational AI agent that captures structured lead data and triggers multi-step workflows via Make.com API integration. Built conditional logic for data validation, email capture, and automated follow-up processes.',
     tags: ['Voiceflow', 'Make.com'],
   },
   {
-    counter: '02 / 03',
+    counter: '03 / 04',
     name: 'AI Customer Support Automation Agent',
     desc: 'AI customer support workflow agent handling user queries, delivering contextual responses, and triggering backend automation via Make.com. Implemented conditional refund workflow with data routing into Airtable for ticket processing.',
     tags: ['Voiceflow', 'Make.com', 'Airtable'],
   },
   {
-    counter: '03 / 03',
+    counter: '04 / 04',
     name: 'AI Product Recommendation Agent <span style="font-size:0.8em;opacity:0.7">(Perfume Brand)</span>',
     desc: 'Intent-based product recommendation logic with category recognition (e.g. "club", "date night") to dynamically suggest relevant products. API-based email capture and automated data routing via Make.com; structured support intake routed into Airtable.',
     tags: ['Voiceflow', 'Make.com', 'Airtable'],
@@ -665,10 +673,45 @@ function initProjectsScroll() {
   const nameEl    = document.getElementById('project-name');
   const descEl    = document.getElementById('project-desc');
   const tagsEl    = document.getElementById('project-tags');
+  const linkEl    = document.getElementById('project-link');
+  const railFill  = document.getElementById('proj-rail-fill');
+  const railNodes = Array.from(document.querySelectorAll('.proj-rail-node'));
 
   if (!blocks.length || !infoEl) return;
 
   let activeIndex = 0;
+
+  function updateNodes(index) {
+    railNodes.forEach((n, i) => {
+      n.classList.toggle('active', i <= index);
+      n.classList.toggle('current', i === index);
+    });
+  }
+  updateNodes(0);
+
+  // Glowing fill + comet head tracks scroll progress through the projects
+  const scrollEl = document.querySelector('.projects-scroll');
+  if (railFill && scrollEl) {
+    ScrollTrigger.create({
+      trigger: scrollEl,
+      start: 'top center',
+      end: 'bottom center',
+      onUpdate: (self) => {
+        railFill.style.height = (self.progress * 100).toFixed(1) + '%';
+      },
+    });
+  }
+
+  function applyLink(p) {
+    if (!linkEl) return;
+    if (p.link) {
+      linkEl.href = p.link;
+      linkEl.style.display = 'inline-flex';
+    } else {
+      linkEl.removeAttribute('href');
+      linkEl.style.display = 'none';
+    }
+  }
 
   function updateInfo(index) {
     if (index === activeIndex) return;
@@ -682,6 +725,8 @@ function initProjectsScroll() {
         nameEl.innerHTML      = p.name;
         descEl.textContent    = p.desc;
         tagsEl.innerHTML      = p.tags.map(t => `<span class="tag">${t}</span>`).join('');
+        applyLink(p);
+        updateNodes(index);
         gsap.to(infoEl, { opacity: 1, y: 0, duration: 0.4, ease: 'power3.out' });
       }
     });
@@ -713,6 +758,65 @@ function initPipelineAnimation() {
       nodes[current].classList.add('active');
     }, 900);
   });
+}
+
+/* ─────────────────────────────────────────────────────────────
+   AUDITLY MOCKUP — animated "thinking" audit process
+   Cycles: scrape → analyze → SEO checks → report, then fills
+   the Conversion / SEO / UX score bars, holds, and loops.
+───────────────────────────────────────────────────────── */
+function initAuditMockup() {
+  const mockup = document.querySelector('.audit-mockup');
+  if (!mockup) return;
+
+  const stages = Array.from(mockup.querySelectorAll('.audit-stage'));
+  const scoresWrap = mockup.querySelector('.audit-scores');
+  const bars = Array.from(mockup.querySelectorAll('.audit-score-fill'));
+  const runBtn = mockup.querySelector('.audit-run');
+  if (!stages.length || !scoresWrap) return;
+
+  let timers = [];
+  const clearTimers = () => { timers.forEach(clearTimeout); timers = []; };
+  const after = (ms, fn) => timers.push(setTimeout(fn, ms));
+
+  function reset() {
+    stages.forEach(s => s.classList.remove('active', 'done'));
+    scoresWrap.classList.remove('show');
+    bars.forEach(b => { b.style.width = '0%'; });
+    if (runBtn) runBtn.classList.remove('running');
+  }
+
+  function runCycle() {
+    reset();
+    if (runBtn) runBtn.classList.add('running');
+
+    let t = 500;
+    stages.forEach((stage, i) => {
+      after(t, () => {
+        stages.forEach(s => s.classList.remove('active'));
+        stage.classList.add('active');
+      });
+      after(t + 850, () => {
+        stage.classList.remove('active');
+        stage.classList.add('done');
+      });
+      t += 1000;
+    });
+
+    // Reveal + fill score bars after all stages complete
+    after(t + 200, () => {
+      if (runBtn) runBtn.classList.remove('running');
+      scoresWrap.classList.add('show');
+      bars.forEach((b, i) => {
+        after(i * 220, () => { b.style.width = (b.dataset.score || 0) + '%'; });
+      });
+    });
+
+    // Hold the finished report, then loop
+    after(t + 4200, runCycle);
+  }
+
+  runCycle();
 }
 
 /* ─────────────────────────────────────────────────────────────

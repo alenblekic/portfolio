@@ -108,7 +108,7 @@
           I've worked across <strong>electronics manufacturing, IT operations, and technical support</strong> — and that background gives me something many automation builders don't have: <strong>real-world systems thinking under pressure</strong>.
         </p>
         <p class="about-bio">
-          Today, my focus is <strong>AI, automation, and building systems that solve practical problems</strong>. I work with tools like Make.com, Voiceflow, Claude Code, and Lovable to create modular workflows, automate repetitive processes, and turn ideas into working solutions. I'm also expanding my skills in <strong>Azure and cloud-based automation</strong>.
+          Today, my focus is <strong>AI, automation, and building systems that solve practical problems</strong>. I work with tools like <strong style="color:#6D5EF6">Make.com</strong>, <strong style="color:#3D82E2">Voiceflow</strong>, <strong style="color:#D97757">Claude Code</strong>, and <strong style="color:#FFFFFF">Vercel</strong> to create modular workflows, automate repetitive processes, and turn ideas into working solutions. I'm also expanding my skills in <strong>Azure and cloud-based automation</strong>.
         </p>
         <p class="about-bio">
           I speak <strong>English and Swedish, as well as fluent Bosnian</strong>. I'm constantly learning by building, documenting, testing, and refining systems until they work reliably.
@@ -232,7 +232,7 @@
               <div class="toolkit-bubbles">
                 <span class="skill-bubble"><i class="dot" style="background:#FF6B35"></i>Make.com</span>
                 <span class="skill-bubble"><i class="dot" style="background:#6C5CE7"></i>Voiceflow</span>
-                <span class="skill-bubble"><i class="dot" style="background:#FF6B9D"></i>Lovable</span>
+                <span class="skill-bubble"><i class="dot" style="background:#FFFFFF"></i>Vercel</span>
                 <span class="skill-bubble"><i class="dot" style="background:#10A37F"></i>ChatGPT / GPT APIs</span>
                 <span class="skill-bubble"><i class="dot" style="background:#D97757"></i>Claude Code</span>
                 <span class="skill-bubble"><i class="dot" style="background:#4ADE80"></i>Prompt Chaining</span>
@@ -315,27 +315,87 @@
   <section id="projects" class="section projects-section">
     <div class="container-wide">
       <p class="section-label">What I've Built</p>
-      <h2 class="section-title">AI Agents</h2>
+      <h2 class="section-title">AI Projects</h2>
       <div class="projects-layout">
 
         <!-- Left: Sticky Info Panel -->
         <div class="projects-sticky">
-          <div class="project-info" id="project-info">
-            <div class="project-counter" id="project-counter">01 / 03</div>
-            <h3 class="project-name" id="project-name">Voiceflow Lead Capture &amp; Automation Agent</h3>
-            <p class="project-desc" id="project-desc">Full conversational AI agent that captures structured lead data and triggers multi-step workflows via Make.com API integration. Built conditional logic for data validation, email capture, and automated follow-up processes.</p>
-            <div class="project-tags" id="project-tags">
-              <span class="tag">Voiceflow</span>
-              <span class="tag">Make.com</span>
+
+          <!-- Scroll progress rail -->
+          <div class="proj-rail" id="proj-rail" aria-hidden="true">
+            <div class="proj-rail-track"></div>
+            <div class="proj-rail-fill" id="proj-rail-fill"></div>
+            <div class="proj-rail-nodes">
+              <span class="proj-rail-node active" data-i="0"><span class="proj-rail-num">01</span></span>
+              <span class="proj-rail-node" data-i="1"><span class="proj-rail-num">02</span></span>
+              <span class="proj-rail-node" data-i="2"><span class="proj-rail-num">03</span></span>
+              <span class="proj-rail-node" data-i="3"><span class="proj-rail-num">04</span></span>
             </div>
+          </div>
+
+          <div class="project-info" id="project-info">
+            <div class="project-counter" id="project-counter">01 / 04</div>
+            <h3 class="project-name" id="project-name">Auditly Pro — AI-Powered Website Audit Tool</h3>
+            <p class="project-desc" id="project-desc">Full-stack AI web app that scrapes any landing page and returns a scored audit across Conversion, SEO, and UX, plus the 5 highest-impact fixes referencing the real page content. Hybrid engine: deterministic SEO checks + Claude judgment, streamed live progress, Redis-cached shareable reports, with SSRF guards and per-IP rate limiting.</p>
+            <div class="project-tags" id="project-tags">
+              <span class="tag">Next.js 15</span>
+              <span class="tag">TypeScript</span>
+              <span class="tag">Claude</span>
+              <span class="tag">Firecrawl</span>
+              <span class="tag">Redis</span>
+              <span class="tag">Vercel</span>
+            </div>
+            <a class="project-link" id="project-link" href="https://auditly-pro.vercel.app/" target="_blank" rel="noopener noreferrer">
+              <span>View Live</span>
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M7 17L17 7M17 7H8M17 7V16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
           </div>
         </div>
 
         <!-- Right: Scrollable Visuals -->
         <div class="projects-scroll">
 
-          <!-- Project 01 -->
+          <!-- Project 01 — Auditly Pro (live audit process) -->
           <div class="project-visual-block" data-project="0">
+            <div class="project-mockup audit-mockup">
+              <div class="mockup-header">
+                <div class="mockup-dot red"></div>
+                <div class="mockup-dot yellow"></div>
+                <div class="mockup-dot green"></div>
+                <span class="mockup-title">Auditly Pro — AI Website Audit</span>
+              </div>
+              <div class="audit-body">
+                <div class="audit-url-bar">
+                  <svg class="audit-url-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 15l6-6M11 6l.5-.5a4 4 0 015.5 5.5l-1 1M13 18l-.5.5a4 4 0 01-5.5-5.5l1-1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                  <span class="audit-url">https://yoursaas.com</span>
+                  <span class="audit-run">Audit</span>
+                </div>
+                <div class="audit-stages">
+                  <div class="audit-stage"><span class="audit-stage-icon"></span> Scraping page with Firecrawl</div>
+                  <div class="audit-stage"><span class="audit-stage-icon"></span> Analyzing conversion &amp; UX with Claude</div>
+                  <div class="audit-stage"><span class="audit-stage-icon"></span> Running deterministic SEO checks</div>
+                  <div class="audit-stage"><span class="audit-stage-icon"></span> Generating scored report</div>
+                </div>
+                <div class="audit-scores">
+                  <div class="audit-score">
+                    <div class="audit-score-head"><span>Conversion</span><span class="audit-score-num">88</span></div>
+                    <div class="audit-score-track"><div class="audit-score-fill" data-score="88"></div></div>
+                  </div>
+                  <div class="audit-score">
+                    <div class="audit-score-head"><span>SEO</span><span class="audit-score-num">92</span></div>
+                    <div class="audit-score-track"><div class="audit-score-fill" data-score="92"></div></div>
+                  </div>
+                  <div class="audit-score">
+                    <div class="audit-score-head"><span>UX</span><span class="audit-score-num">81</span></div>
+                    <div class="audit-score-track"><div class="audit-score-fill" data-score="81"></div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Project 02 -->
+          <div class="project-visual-block" data-project="1">
             <div class="project-mockup chat-mockup">
               <div class="mockup-header">
                 <div class="mockup-dot red"></div>
@@ -375,8 +435,8 @@
             </div>
           </div>
 
-          <!-- Project 02 -->
-          <div class="project-visual-block" data-project="1">
+          <!-- Project 03 -->
+          <div class="project-visual-block" data-project="2">
             <div class="project-mockup chat-mockup">
               <div class="mockup-header">
                 <div class="mockup-dot red"></div>
@@ -413,8 +473,8 @@
             </div>
           </div>
 
-          <!-- Project 03 -->
-          <div class="project-visual-block" data-project="2">
+          <!-- Project 04 -->
+          <div class="project-visual-block" data-project="3">
             <div class="project-mockup chat-mockup">
               <div class="mockup-header">
                 <div class="mockup-dot red"></div>

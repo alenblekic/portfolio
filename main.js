@@ -1313,13 +1313,21 @@ function initAlenSignature() {
   const textEl = document.querySelector('.sig-text');
   if (!textEl || typeof gsap === 'undefined') return;
 
-  const LEN = 6000;
+  const LEN = 8000; // safely exceeds the ALEN outline path length
   gsap.set(textEl, { strokeDasharray: LEN, strokeDashoffset: LEN });
 
   function runCycle() {
+    gsap.set(textEl, { strokeDasharray: LEN, strokeDashoffset: LEN });
     const tl = gsap.timeline({ onComplete: () => gsap.delayedCall(2.2, runCycle) });
-    tl.to(textEl, { strokeDashoffset: 0, duration: 4.2, ease: 'power2.inOut' });
-    tl.to(textEl, { strokeDashoffset: LEN, duration: 3.0, ease: 'power2.inOut' }, '+=2.2');
+    // Draw the outline on, then drop the dash so the resting state is a
+    // complete, gap-free outline (no segment clipped mid-letter).
+    tl.to(textEl, {
+      strokeDashoffset: 0, duration: 4.2, ease: 'power2.inOut',
+      onComplete: () => gsap.set(textEl, { strokeDasharray: 'none' }),
+    });
+    // Hold, then restore the dash and erase it back out.
+    tl.add(() => gsap.set(textEl, { strokeDasharray: LEN, strokeDashoffset: 0 }), '+=2.2');
+    tl.to(textEl, { strokeDashoffset: LEN, duration: 3.0, ease: 'power2.inOut' });
   }
 
   ScrollTrigger.create({

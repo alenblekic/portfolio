@@ -34,6 +34,48 @@ body {
   overflow-x: hidden;
 }
 
+/* ── Custom themed scrollbar ───────────────────────────────── */
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--red-dark) transparent;
+}
+/* WebKit / Chromium / Edge */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  /* inset look: gradient thumb with a transparent border so it floats */
+  background: linear-gradient(180deg, var(--red), var(--red-dark));
+  border: 2px solid var(--bg);
+  background-clip: padding-box;
+  transition: background var(--transition);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #E8916F, var(--red));
+  background-clip: padding-box;
+  box-shadow: 0 0 10px var(--red-glow);
+}
+::-webkit-scrollbar-corner { background: var(--bg); }
+/* Remove the up/down stepper arrows for a clean track.
+   Every button sub-state is covered so no Chromium build re-adds them. */
+::-webkit-scrollbar-button,
+::-webkit-scrollbar-button:single-button,
+::-webkit-scrollbar-button:vertical:start:decrement,
+::-webkit-scrollbar-button:vertical:end:increment,
+::-webkit-scrollbar-button:horizontal:start:decrement,
+::-webkit-scrollbar-button:horizontal:end:increment {
+  display: none;
+  width: 0;
+  height: 0;
+  background: transparent;
+}
+
 a { text-decoration: none; color: inherit; }
 ul { list-style: none; }
 img { display: block; max-width: 100%; }

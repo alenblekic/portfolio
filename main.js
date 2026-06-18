@@ -1010,11 +1010,8 @@ function initGlobe() {
   canvas.addEventListener('pointermove', e => {
     if (!isDragging) return;
     const dx = e.clientX - prevX;
-    const dy = e.clientY - prevY;
     velX = dx;
-    globeGroup.rotation.y += dx * 0.012;
-    globeGroup.rotation.x += dy * 0.012;
-    globeGroup.rotation.x = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, globeGroup.rotation.x));
+    globeGroup.rotation.y += dx * 0.012; // horizontal spin only — no vertical tilt
     prevX = e.clientX; prevY = e.clientY;
   });
   canvas.addEventListener('pointerup', () => {

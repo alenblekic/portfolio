@@ -3,8 +3,28 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Alen Blekic — AI Automation Builder & Prompt Engineer</title>
-  <meta name="description" content="AI Automation Builder & Prompt Engineer based in Helsingborg, Sweden. Specializing in Make, Voiceflow, and LLM workflow engineering." />
+  <title>Alen Blekic — AI Developer | IT & Cloud</title>
+  <meta name="description" content="Alen Blekic — AI developer building deployed full-stack apps and automation (Next.js, Claude, LLM workflows), backed by an IT Operations & Azure cloud foundation. Based in Helsingborg, Sweden." />
+  <meta name="author" content="Alen Blekic" />
+  <meta name="keywords" content="Alen Blekic, AI developer, full-stack developer, IT operations, Azure cloud, automation, Next.js, Claude, prompt engineering, Helsingborg Sweden" />
+
+  <!-- Open Graph / Facebook / LinkedIn -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Alen Blekic" />
+  <meta property="og:title" content="Alen Blekic — AI Developer | IT & Cloud" />
+  <meta property="og:description" content="AI developer building deployed full-stack apps and automation, backed by an IT Operations & Azure cloud foundation. Based in Helsingborg, Sweden." />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:url" content="https://alenb.vercel.app/" />
+  <!-- Stopgap preview image; replace with a dedicated 1200x630 card at img/og-image.png -->
+  <meta property="og:image" content="https://alenb.vercel.app/img/photo2.png" />
+  <meta property="og:image:alt" content="Alen Blekic — AI Developer | IT & Cloud" />
+
+  <!-- Twitter / X card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Alen Blekic — AI Developer | IT & Cloud" />
+  <meta name="twitter:description" content="AI developer building deployed full-stack apps and automation, backed by an IT Operations & Azure cloud foundation." />
+  <meta name="twitter:image" content="https://alenb.vercel.app/img/photo2.png" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
@@ -40,7 +60,7 @@
         <h1 class="hero-name">
           <span class="typewriter" id="typewriter"></span><span class="cursor-blink" id="cursor-blink">|</span>
         </h1>
-        <p class="hero-subtitle" id="hero-subtitle">AI Automation Builder &amp; Prompt Engineer</p>
+        <p class="hero-subtitle" id="hero-subtitle">AI Developer · IT &amp; Cloud</p>
         <p class="hero-location" id="hero-location">Helsingborg, Sweden</p>
         <a href="#projects" class="btn-primary" id="hero-cta">View My Work</a>
       </div>
@@ -345,10 +365,16 @@
               <span class="tag">Redis</span>
               <span class="tag">Vercel</span>
             </div>
-            <a class="project-link" id="project-link" href="https://auditly-pro.vercel.app/" target="_blank" rel="noopener noreferrer">
-              <span>View Live</span>
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M7 17L17 7M17 7H8M17 7V16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </a>
+            <div class="project-actions">
+              <a class="project-link" id="project-link" href="https://auditly-pro.vercel.app/" target="_blank" rel="noopener noreferrer">
+                <span>View Live</span>
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M7 17L17 7M17 7H8M17 7V16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </a>
+              <button class="project-casestudy" id="project-casestudy" type="button" aria-haspopup="dialog" aria-controls="cs-modal">
+                <span>Case Study</span>
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -738,6 +764,86 @@
   <footer class="footer">
     <p>© 2026 Alen Blekic — Built with intention.</p>
   </footer>
+
+  <!-- Auditly Pro — Case Study Modal -->
+  <div class="cs-modal" id="cs-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="cs-title">
+    <div class="cs-backdrop" data-cs-close></div>
+    <div class="cs-panel" role="document">
+      <button class="cs-close" type="button" data-cs-close aria-label="Close case study">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+
+      <div class="cs-scroll">
+        <p class="cs-eyebrow">Case Study · Featured Project</p>
+        <h2 class="cs-title" id="cs-title">Auditly Pro</h2>
+        <p class="cs-lead">An LLM is great at <em>judgment</em> and unreliable at <em>facts</em>. So I split the audit engine in two: deterministic code measures everything that has a right answer, and the model only weighs in where opinion is the point. Here's how it's built — and why.</p>
+
+        <!-- Architecture -->
+        <h3 class="cs-h3">Architecture</h3>
+        <p class="cs-sub">One request, streamed end to end inside Vercel's 60s function window.</p>
+        <div class="cs-flow">
+          <span class="cs-node">URL in</span>
+          <span class="cs-arrow">→</span>
+          <span class="cs-node">Validate + SSRF guard</span>
+          <span class="cs-arrow">→</span>
+          <span class="cs-node">Cache check<small>Redis</small></span>
+          <span class="cs-arrow">→</span>
+          <span class="cs-node">Scrape<small>Firecrawl</small></span>
+          <span class="cs-arrow">→</span>
+          <span class="cs-node cs-node-split">Analyze<small>SEO checks ∥ LLM judgment</small></span>
+          <span class="cs-arrow">→</span>
+          <span class="cs-node">Store<small>Redis · 24h TTL</small></span>
+          <span class="cs-arrow">→</span>
+          <span class="cs-node cs-node-end">Shareable report</span>
+        </div>
+
+        <!-- Decisions -->
+        <h3 class="cs-h3">Engineering decisions</h3>
+        <div class="cs-decisions">
+          <div class="cs-decision">
+            <h4>Hybrid scoring</h4>
+            <p>SEO is graded by deterministic code — titles, headings, alt text, canonical tags, HTTPS — because those are facts with a correct answer. The LLM is reserved for conversion and UX, where judgment is the whole point. This keeps scores reproducible and kills hallucinated metrics.</p>
+          </div>
+          <div class="cs-decision">
+            <h4>Streamed progress (NDJSON)</h4>
+            <p>Audits take 20–40s, and a silent 40-second request feels broken (and risks Vercel's 60s timeout). The endpoint streams <code>scraping → analyzing → done</code> events as NDJSON, so the UI shows live progress instead of a frozen spinner.</p>
+          </div>
+          <div class="cs-decision">
+            <h4>Redis caching</h4>
+            <p>Reports are cached in Upstash Redis with a 24h TTL and served from a stable <code>/report/[id]</code> URL. Repeat views and shares skip a full re-scrape + re-analysis — saving both latency and API cost.</p>
+          </div>
+          <div class="cs-decision">
+            <h4>Security hardening</h4>
+            <p>The app fetches arbitrary user-supplied URLs — textbook SSRF territory — so requests pass an SSRF guard before any fetch. Add per-IP rate limiting to curb abuse and Zod schema validation on every input boundary, and the public endpoint stays safe to expose.</p>
+          </div>
+          <div class="cs-decision">
+            <h4>Provider abstraction</h4>
+            <p>The AI engine is swappable between Groq, Gemini, and Claude via a single environment variable. No vendor lock-in — I can route around cost, rate limits, or outages without touching application code.</p>
+          </div>
+          <div class="cs-decision">
+            <h4>Print-to-PDF, not Chromium</h4>
+            <p>PDF export uses a browser-native print stylesheet instead of bundling serverless Chromium. It drops a heavyweight, slow-cold-start dependency while still producing a clean, shareable document.</p>
+          </div>
+        </div>
+
+        <!-- Trade-offs -->
+        <h3 class="cs-h3">Trade-offs &amp; scope</h3>
+        <p class="cs-tradeoff">Shipped as a demo MVP: single-page analysis only, and the LLM portion is as good as the model behind it. Multi-page crawling and historical report tracking are the obvious next steps — deliberately cut to ship something real and focused first.</p>
+
+        <!-- CTA -->
+        <div class="cs-cta">
+          <a class="project-link" href="https://auditly-pro.vercel.app/" target="_blank" rel="noopener noreferrer">
+            <span>View Live</span>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M7 17L17 7M17 7H8M17 7V16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+          <a class="project-link cs-link-ghost" href="https://github.com/alenblekic/ai-website-audit-agent" target="_blank" rel="noopener noreferrer">
+            <span>View Code</span>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M7 17L17 7M17 7H8M17 7V16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Three.js CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>

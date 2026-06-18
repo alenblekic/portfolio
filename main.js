@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initHeroAnimation();
   initScrollAnimations();
   initProjectsScroll();
+  initCaseStudyModal();
   initSectionHeaderLines();
   initAboutSlideshow();
   initMobileNav();
@@ -54,7 +55,7 @@ function animateWhenVisible(target, frame) {
 ───────────────────────────────────────────────────────── */
 function initCertTilt() {
   const MAX = 9; // max tilt in degrees
-  document.querySelectorAll('.cert-card-v2, .stat-card').forEach(card => {
+  document.querySelectorAll('.cert-card-v2, .stat-card, .project-mockup').forEach(card => {
     const spotlight = card.classList.contains('stat-card') || card.classList.contains('cert-card-v2');
     card.addEventListener('mousemove', e => {
       const r = card.getBoundingClientRect();
@@ -643,6 +644,7 @@ const PROJECTS = [
     desc: 'Full-stack AI web app that scrapes any landing page and returns a scored audit across Conversion, SEO, and UX, plus the 5 highest-impact fixes referencing the real page content. Hybrid engine: deterministic SEO checks + Claude judgment, streamed live progress, Redis-cached shareable reports, with SSRF guards and per-IP rate limiting.',
     tags: ['Next.js 15', 'TypeScript', 'Claude', 'Firecrawl', 'Redis', 'Vercel'],
     link: 'https://auditly-pro.vercel.app/',
+    caseStudy: true,
   },
   {
     counter: '02 / 04',
@@ -674,6 +676,7 @@ function initProjectsScroll() {
   const descEl    = document.getElementById('project-desc');
   const tagsEl    = document.getElementById('project-tags');
   const linkEl    = document.getElementById('project-link');
+  const csEl      = document.getElementById('project-casestudy');
   const railFill  = document.getElementById('proj-rail-fill');
   const railNodes = Array.from(document.querySelectorAll('.proj-rail-node'));
 
@@ -689,28 +692,37 @@ function initProjectsScroll() {
   }
   updateNodes(0);
 
-  // Glowing fill + comet head tracks scroll progress through the projects
+  // Glowing fill + comet head glide along the scroll. `scrub: 1` adds ~1s of
+  // smoothing so the fill eases in/out and slides to catch up rather than
+  // tracking the scroll position instantly.
   const scrollEl = document.querySelector('.projects-scroll');
   if (railFill && scrollEl) {
-    ScrollTrigger.create({
-      trigger: scrollEl,
-      start: 'top center',
-      end: 'bottom center',
-      onUpdate: (self) => {
-        railFill.style.height = (self.progress * 100).toFixed(1) + '%';
-      },
-    });
+    gsap.fromTo(railFill,
+      { height: '0%' },
+      {
+        height: '100%',
+        ease: 'none',
+        scrollTrigger: {
+          trigger: scrollEl,
+          start: 'top center',
+          end: 'bottom center',
+          scrub: 1,
+        },
+      }
+    );
   }
 
   function applyLink(p) {
-    if (!linkEl) return;
-    if (p.link) {
-      linkEl.href = p.link;
-      linkEl.style.display = 'inline-flex';
-    } else {
-      linkEl.removeAttribute('href');
-      linkEl.style.display = 'none';
+    if (linkEl) {
+      if (p.link) {
+        linkEl.href = p.link;
+        linkEl.style.display = 'inline-flex';
+      } else {
+        linkEl.removeAttribute('href');
+        linkEl.style.display = 'none';
+      }
     }
+    if (csEl) csEl.style.display = p.caseStudy ? 'inline-flex' : 'none';
   }
 
   function updateInfo(index) {
@@ -740,6 +752,41 @@ function initProjectsScroll() {
       onEnter:     () => updateInfo(i),
       onEnterBack: () => updateInfo(i),
     });
+  });
+}
+
+/* ─────────────────────────────────────────────────────────────
+   CASE STUDY MODAL (Auditly Pro deep-dive)
+───────────────────────────────────────────────────────── */
+function initCaseStudyModal() {
+  const modal = document.getElementById('cs-modal');
+  const openBtn = document.getElementById('project-casestudy');
+  if (!modal || !openBtn) return;
+
+  const scrollEl = modal.querySelector('.cs-scroll');
+  let lastFocus = null;
+
+  function open() {
+    lastFocus = document.activeElement;
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('cs-open');
+    if (scrollEl) scrollEl.scrollTop = 0;
+    const closeBtn = modal.querySelector('.cs-close');
+    if (closeBtn) closeBtn.focus();
+  }
+
+  function close() {
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('cs-open');
+    if (lastFocus) lastFocus.focus();
+  }
+
+  openBtn.addEventListener('click', open);
+  modal.querySelectorAll('[data-cs-close]').forEach(el => el.addEventListener('click', close));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('open')) close();
   });
 }
 

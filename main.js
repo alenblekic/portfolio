@@ -883,67 +883,27 @@ function initGlobe() {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setClearColor(0x000000, 0);
 
-  /* Ocean sphere — translucent deep blue so stars bleed through */
+  /* Dark globe body — opaque so it occludes the back-side dots and reads
+     as a solid sphere. Colour sits just above the page background. */
   scene.add(new THREE.Mesh(
-    new THREE.SphereGeometry(1, 48, 48),
-    new THREE.MeshBasicMaterial({ color: 0x0a1a2e, transparent: true, opacity: 0.45 })
+    new THREE.SphereGeometry(0.985, 48, 48),
+    new THREE.MeshBasicMaterial({ color: 0x0d0a09 })
   ));
 
-  /* Very faint lat/lon grid on ocean surface */
-  scene.add(new THREE.LineSegments(
-    new THREE.WireframeGeometry(new THREE.SphereGeometry(1.0005, 24, 16)),
-    new THREE.LineBasicMaterial({ color: 0x112244, transparent: true, opacity: 0.18 })
-  ));
-
-  /* Outer atmosphere glow — blue rim */
+  /* Soft coral atmosphere rim glow */
   scene.add(new THREE.Mesh(
-    new THREE.SphereGeometry(1.09, 32, 32),
-    new THREE.MeshBasicMaterial({ color: 0x1a4060, transparent: true, opacity: 0.13, side: THREE.BackSide })
+    new THREE.SphereGeometry(1.14, 32, 32),
+    new THREE.MeshBasicMaterial({ color: 0xD97757, transparent: true, opacity: 0.10, side: THREE.BackSide })
   ));
-
-  /* Inner atmosphere tint */
   scene.add(new THREE.Mesh(
-    new THREE.SphereGeometry(1.02, 32, 32),
-    new THREE.MeshBasicMaterial({ color: 0x0d2540, transparent: true, opacity: 0.08, side: THREE.BackSide })
+    new THREE.SphereGeometry(1.04, 32, 32),
+    new THREE.MeshBasicMaterial({ color: 0x4a221a, transparent: true, opacity: 0.14, side: THREE.BackSide })
   ));
 
-  /* Space stars */
-  const STAR_COUNT = 280;
-  const starPos = new Float32Array(STAR_COUNT * 3);
-  for (let i = 0; i < STAR_COUNT; i++) {
-    const r     = 2.4 + Math.random() * 3.8;
-    const theta = Math.random() * Math.PI * 2;
-    const phi   = Math.acos(2 * Math.random() - 1);
-    starPos[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
-    starPos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-    starPos[i * 3 + 2] = r * Math.cos(phi);
-  }
-  const starGeo = new THREE.BufferGeometry();
-  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-  const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.028, transparent: true, opacity: 0.55 });
-  scene.add(new THREE.Points(starGeo, starMat));
-
-  /* Orbiting red dust particles */
-  const DUST_COUNT = 45;
-  const dustPos  = new Float32Array(DUST_COUNT * 3);
-  const dustData = [];
-  for (let i = 0; i < DUST_COUNT; i++) {
-    const r     = 1.15 + Math.random() * 0.45;
-    const theta = Math.random() * Math.PI * 2;
-    const phi   = Math.acos(2 * Math.random() - 1);
-    dustData.push({ r, theta, phi, speed: (Math.random() - 0.5) * 0.01 + 0.003 });
-    dustPos[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
-    dustPos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-    dustPos[i * 3 + 2] = r * Math.cos(phi);
-  }
-  const dustGeo = new THREE.BufferGeometry();
-  dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
-  const dustMat = new THREE.PointsMaterial({ color: 0xD97757, size: 0.02, transparent: true, opacity: 0.38 });
-  const dustPoints = new THREE.Points(dustGeo, dustMat);
-  scene.add(dustPoints);
-
-  /* Globe group — country lines added here once loaded */
+  /* Globe group — continent dots added here once loaded */
   const globeGroup = new THREE.Group();
+  globeGroup.rotation.y = -1.81;  // face Europe toward the viewer
+  globeGroup.rotation.x = 0.5;    // tilt north up so Sweden sits in view
   scene.add(globeGroup);
 
   /* Convert lat/lon → 3D point on unit sphere */
@@ -957,79 +917,92 @@ function initGlobe() {
     );
   }
 
-  /* Build line geometry from a ring of [lon,lat] pairs */
-  function ringToPoints(coords, r) {
-    const pts = [];
-    for (let i = 0; i < coords.length; i++) {
-      pts.push(ll2v(coords[i][0], coords[i][1], r));
-      /* Insert midpoint segments to reduce great-circle gaps */
-      if (i < coords.length - 1) {
-        const mx = (coords[i][0] + coords[i+1][0]) / 2;
-        const my = (coords[i][1] + coords[i+1][1]) / 2;
-        pts.push(ll2v(mx, my, r));
-      }
+  /* Point-in-polygon (ray casting) on geographic lon/lat */
+  function pointInRing(lon, lat, ring) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const xi = ring[i][0], yi = ring[i][1];
+      const xj = ring[j][0], yj = ring[j][1];
+      if (((yi > lat) !== (yj > lat)) &&
+          (lon < (xj - xi) * (lat - yi) / (yj - yi) + xi)) inside = !inside;
     }
-    return pts;
+    return inside;
+  }
+  function isLand(lon, lat, rings) {
+    for (const R of rings) {
+      if (lon < R.minLon || lon > R.maxLon || lat < R.minLat || lat > R.maxLat) continue;
+      if (pointInRing(lon, lat, R.ring)) return true;
+    }
+    return false;
   }
 
-  /* Materials */
-  const lineMat    = new THREE.LineBasicMaterial({ color: 0xD97757, transparent: true, opacity: 0.55 });
-  const swedenMat  = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95 });
-  const swedenGlow = new THREE.LineBasicMaterial({ color: 0xff4444, transparent: true, opacity: 0.35 });
+  /* Materials: coral continent dots + a bright pulsing Sweden cluster */
+  const landMat   = new THREE.PointsMaterial({ color: 0xD97757, size: 0.024, transparent: true, opacity: 0.92, sizeAttenuation: true });
+  const swedenMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.034, transparent: true, opacity: 1, sizeAttenuation: true });
 
-  /* Animated opacity pulse for Sweden */
-  let swedenLines = [];
-  const swedenClock = { t: 0 };
+  function vertsToPoints(verts, mat) {
+    const pos = new Float32Array(verts.length * 3);
+    verts.forEach((v, i) => { pos[i*3] = v.x; pos[i*3+1] = v.y; pos[i*3+2] = v.z; });
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    return new THREE.Points(geo, mat);
+  }
 
-  /* Fetch world countries topojson and draw outlines */
+  /* Banded lat/lon grid (rows scaled by cos(lat) for even spacing); keep the
+     dots that fall on land, with the Sweden region split out for emphasis. */
+  function buildDots(landRings) {
+    const land = [], sweden = [];
+    const LAT_STEP = 2.6, LON_BASE = 150;
+    for (let lat = -88; lat <= 88; lat += LAT_STEP) {
+      const cosL = Math.cos(lat * Math.PI / 180);
+      const n = Math.max(1, Math.round(LON_BASE * cosL));
+      for (let k = 0; k < n; k++) {
+        const lon = -180 + (360 * k / n);
+        if (landRings && !isLand(lon, lat, landRings)) continue;
+        const v = ll2v(lon, lat, 1.0);
+        if (landRings && lon >= 11 && lon <= 19 && lat >= 55 && lat <= 66) sweden.push(v);
+        else land.push(v);
+      }
+    }
+    globeGroup.add(vertsToPoints(land, landMat));
+    if (sweden.length) globeGroup.add(vertsToPoints(sweden, swedenMat));
+  }
+
+  /* Fetch world landmasses, derive the bounding-boxed land rings, build dots */
   fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
     .then(r => r.json())
     .then(world => {
       const countries = topojson.feature(world, world.objects.countries);
-
-      countries.features.forEach(feature => {
-        const isSweden = String(feature.id) === '752';
-        const geom = feature.geometry;
-        const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
-
+      const landRings = [];
+      countries.features.forEach(f => {
+        const g = f.geometry;
+        if (!g) return;
+        const polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
         polys.forEach(poly => {
-          poly.forEach(ring => {
-            const pts = ringToPoints(ring, 1.001);
-            if (pts.length < 2) return;
-            const geo = new THREE.BufferGeometry().setFromPoints(pts);
-
-            if (isSweden) {
-              /* Crisp white line */
-              const line = new THREE.Line(geo, swedenMat);
-              globeGroup.add(line);
-              swedenLines.push(line);
-
-              /* Wider glow pass slightly above surface */
-              const geoGlow = new THREE.BufferGeometry().setFromPoints(ringToPoints(ring, 1.004));
-              const glowLine = new THREE.Line(geoGlow, swedenGlow);
-              globeGroup.add(glowLine);
-              swedenLines.push(glowLine);
-            } else {
-              globeGroup.add(new THREE.Line(geo, lineMat));
-            }
-          });
+          const ring = poly[0];
+          if (!ring || ring.length < 4) return;
+          let minLon = 180, maxLon = -180, minLat = 90, maxLat = -90;
+          for (const c of ring) {
+            if (c[0] < minLon) minLon = c[0];
+            if (c[0] > maxLon) maxLon = c[0];
+            if (c[1] < minLat) minLat = c[1];
+            if (c[1] > maxLat) maxLat = c[1];
+          }
+          landRings.push({ ring, minLon, maxLon, minLat, maxLat });
         });
       });
+      buildDots(landRings);
     })
-    .catch(() => {
-      /* Fallback: simple lat/lon grid if fetch fails */
-      const gMat = new THREE.LineBasicMaterial({ color: 0x7A3D29, transparent: true, opacity: 0.4 });
-      const gGeo = new THREE.WireframeGeometry(new THREE.SphereGeometry(1.001, 18, 12));
-      globeGroup.add(new THREE.LineSegments(gGeo, gMat));
-    });
+    .catch(() => buildDots(null)); /* fallback: full dotted sphere */
 
-  /* Drag interaction */
-  let isDragging = false, autoRotate = true, autoTimer = null;
+  /* Drag interaction — no auto-rotation; only spins when the user drags,
+     with a little inertia after release. */
+  let isDragging = false;
   let prevX = 0, prevY = 0, velX = 0;
+  canvas.style.cursor = 'grab';
 
   canvas.addEventListener('pointerdown', e => {
-    isDragging = true; autoRotate = false;
-    clearTimeout(autoTimer);
+    isDragging = true;
     prevX = e.clientX; prevY = e.clientY; velX = 0;
     canvas.setPointerCapture(e.pointerId);
     canvas.style.cursor = 'grabbing';
@@ -1047,37 +1020,19 @@ function initGlobe() {
   canvas.addEventListener('pointerup', () => {
     isDragging = false;
     canvas.style.cursor = 'grab';
-    autoTimer = setTimeout(() => { autoRotate = true; }, 1800);
   });
 
-  /* Animate */
+  /* Animate — apply release inertia + pulse the Sweden cluster */
   const globeClock = new THREE.Clock();
   function animate() {
     const t = globeClock.getElapsedTime();
 
-    if (autoRotate) {
-      globeGroup.rotation.y += 0.004;
-    } else if (!isDragging) {
+    if (!isDragging) {
       globeGroup.rotation.y += velX * 0.003;
       velX *= 0.92;
     }
 
-    const dp = dustGeo.attributes.position.array;
-    for (let i = 0; i < DUST_COUNT; i++) {
-      dustData[i].theta += dustData[i].speed;
-      const { r, theta, phi } = dustData[i];
-      dp[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
-      dp[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-      dp[i * 3 + 2] = r * Math.cos(phi);
-    }
-    dustGeo.attributes.position.needsUpdate = true;
-    starMat.opacity = 0.45 + Math.sin(t * 1.1) * 0.12;
-
-    /* Pulse Sweden */
-    if (swedenLines.length) {
-      swedenMat.opacity  = 0.80 + Math.sin(t * 1.8) * 0.18;
-      swedenGlow.opacity = 0.22 + Math.sin(t * 1.8) * 0.16;
-    }
+    swedenMat.opacity = 0.7 + Math.sin(t * 2.0) * 0.3;
 
     renderer.render(scene, camera);
   }

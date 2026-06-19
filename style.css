@@ -1131,7 +1131,9 @@ img { display: block; max-width: 100%; }
 }
 .project-tags { display: flex; flex-wrap: wrap; gap: 8px; }
 .tag {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 5px 14px;
   border: 1px solid var(--border-red);
   border-radius: 40px;
@@ -1140,6 +1142,11 @@ img { display: block; max-width: 100%; }
   color: var(--red);
   background: rgba(217,119,87,0.06);
   letter-spacing: 0.05em;
+}
+.tag-ico {
+  height: 13px;
+  width: auto;
+  flex-shrink: 0;
 }
 
 /* Project visuals */

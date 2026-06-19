@@ -1133,7 +1133,7 @@ img { display: block; max-width: 100%; }
 .tag {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   padding: 5px 14px;
   border: 1px solid var(--border-red);
   border-radius: 40px;
@@ -1564,6 +1564,9 @@ img { display: block; max-width: 100%; }
 .cs-cta .project-link { margin-top: 0; }
 .cs-link-ghost { background: transparent; border-color: var(--border); color: var(--grey); }
 .cs-link-ghost:hover { color: var(--white); }
+/* GitHub mark sits steady (no arrow-style hover nudge) */
+.cs-gh-ico { width: 17px; height: 17px; }
+.project-link:hover .cs-gh-ico { transform: none; }
 
 body.cs-open { overflow: hidden; }
 

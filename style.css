@@ -1153,18 +1153,51 @@ img { display: block; max-width: 100%; }
   perspective: 1100px; /* 3D space for the tilt effect */
 }
 .project-mockup {
+  position: relative;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 16px;
   width: 100%;
   max-width: 720px;
-  overflow: hidden;
   box-shadow: 0 0 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03);
-  transform-style: preserve-3d;
+  transform-style: preserve-3d; /* no overflow:hidden — it would flatten the 3D */
   will-change: transform;
   transition: border-color var(--transition), box-shadow var(--transition),
               transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
+/* Round the inner top/bottom pieces — replaces overflow:hidden, which would
+   otherwise collapse the parallax. */
+.project-mockup > .mockup-header {
+  border-top-left-radius: 15px;
+  border-top-right-radius: 15px;
+}
+.project-mockup > :last-child {
+  border-bottom-left-radius: 15px;
+  border-bottom-right-radius: 15px;
+}
+/* Glass surface: a static top sheen + a specular glare that follows the
+   cursor/tilt. Both ride the front face via translateZ. */
+.project-mockup::before,
+.project-mockup::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  pointer-events: none;
+  transform: translateZ(40px);
+}
+.project-mockup::before {
+  background: linear-gradient(157deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02) 24%, transparent 46%);
+  z-index: 5;
+}
+.project-mockup::after {
+  background: radial-gradient(240px circle at var(--mx, 50%) var(--my, 26%), rgba(255,255,255,0.16), transparent 62%);
+  mix-blend-mode: soft-light;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  z-index: 6;
+}
+.project-mockup:hover::after { opacity: 1; }
 /* While actively tracking the cursor, drop the transform transition so the
    tilt follows in real time (matches cert/stat card behaviour). */
 .project-mockup.tilting {
@@ -1174,6 +1207,17 @@ img { display: block; max-width: 100%; }
   border-color: var(--border-red);
   box-shadow: 0 0 48px var(--red-glow-sm), 0 0 0 1px rgba(255,255,255,0.03);
 }
+/* Parallax depth: inner containers keep a 3D context; the padded content
+   floats forward so the tilt reads as real depth without poking the edges. */
+.mockup-header, .chat-window, .audit-body, .pipeline-flow,
+.audit-stages, .audit-scores {
+  transform-style: preserve-3d;
+}
+.mockup-title, .mockup-dot { transform: translateZ(22px); }
+.chat-msg { transform: translateZ(16px); }
+.pipeline-node { transform: translateZ(14px); }
+.audit-url-bar, .audit-scores { transform: translateZ(18px); }
+.audit-stage { transform: translateZ(12px); }
 .mockup-header {
   display: flex;
   align-items: center;
@@ -1214,14 +1258,16 @@ img { display: block; max-width: 100%; }
 .chat-avatar {
   width: 32px; height: 32px;
   border-radius: 50%;
-  background: var(--red-dark);
+  background: var(--bg-card-2);
+  border: 1px solid var(--border);
   display: flex; align-items: center; justify-content: center;
   font-size: 0.65rem;
   font-weight: 700;
   color: var(--white);
   flex-shrink: 0;
-  box-shadow: 0 0 10px var(--red-glow-sm);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
 }
+.chat-avatar svg { width: 18px; height: 18px; }
 .chat-bubble {
   max-width: 75%;
   padding: 10px 14px;

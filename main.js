@@ -56,7 +56,7 @@ function animateWhenVisible(target, frame) {
 function initCertTilt() {
   const MAX = 9; // max tilt in degrees
   document.querySelectorAll('.cert-card-v2, .stat-card, .project-mockup').forEach(card => {
-    const spotlight = card.classList.contains('stat-card') || card.classList.contains('cert-card-v2');
+    const spotlight = card.classList.contains('stat-card') || card.classList.contains('cert-card-v2') || card.classList.contains('project-mockup');
     card.addEventListener('mousemove', e => {
       const r = card.getBoundingClientRect();
       const px = (e.clientX - r.left) / r.width  - 0.5; // -0.5 left → 0.5 right

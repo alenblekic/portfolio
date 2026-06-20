@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initHeroAnimation();
   initScrollAnimations();
   initProjectsScroll();
+  initProjectsMobile();
   initCaseStudyModal();
   initSectionHeaderLines();
   initAboutSlideshow();
@@ -793,12 +794,67 @@ function initProjectsScroll() {
 }
 
 /* ─────────────────────────────────────────────────────────────
+   PROJECTS — MOBILE INFO CARDS
+   On desktop, the sticky panel swaps project copy as you scroll.
+   Below 960px that scroll behaviour is disabled (initProjectsScroll
+   bails), so the sticky panel can only ever show project 01 and
+   projects 02–04 would render as bare mockups with no name, desc,
+   tags or links. Here we hide the sticky panel (CSS) and inject a
+   per-project info card under each mockup so every project carries
+   its own copy. Desktop never runs this.
+───────────────────────────────────────────────────────── */
+function initProjectsMobile() {
+  if (window.innerWidth >= 960) return;
+
+  const scrollEl = document.querySelector('.projects-scroll');
+  if (!scrollEl || scrollEl.dataset.mobileBuilt) return;
+  const blocks = scrollEl.querySelectorAll('.project-visual-block');
+  if (!blocks.length) return;
+
+  const liveSvg = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M7 17L17 7M17 7H8M17 7V16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const csSvg   = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  blocks.forEach((block, i) => {
+    const p = PROJECTS[i];
+    if (!p) return;
+
+    let actions = '';
+    if (p.link || p.caseStudy) {
+      let inner = '';
+      if (p.link) {
+        inner += `<a class="project-link" href="${p.link}" target="_blank" rel="noopener noreferrer"><span>View Live</span>${liveSvg}</a>`;
+      }
+      if (p.caseStudy) {
+        inner += `<button class="project-casestudy pm-casestudy" type="button" aria-haspopup="dialog" aria-controls="cs-modal"><span>Case Study</span>${csSvg}</button>`;
+      }
+      actions = `<div class="project-actions">${inner}</div>`;
+    }
+
+    const card = document.createElement('div');
+    card.className = 'pm-info';
+    card.innerHTML =
+      `<div class="project-counter">${p.counter}</div>` +
+      `<h3 class="project-name">${p.name}</h3>` +
+      `<p class="project-desc">${p.desc}</p>` +
+      `<div class="project-tags">${p.tags.map(tagHTML).join('')}</div>` +
+      actions;
+    block.appendChild(card);
+  });
+
+  scrollEl.dataset.mobileBuilt = '1';
+}
+
+/* ─────────────────────────────────────────────────────────────
    CASE STUDY MODAL (Auditly Pro deep-dive)
 ───────────────────────────────────────────────────────── */
 function initCaseStudyModal() {
   const modal = document.getElementById('cs-modal');
-  const openBtn = document.getElementById('project-casestudy');
-  if (!modal || !openBtn) return;
+  // Desktop sticky button + any mobile per-project Case Study buttons.
+  const openBtns = [
+    document.getElementById('project-casestudy'),
+    ...document.querySelectorAll('.pm-casestudy'),
+  ].filter(Boolean);
+  if (!modal || !openBtns.length) return;
 
   const scrollEl = modal.querySelector('.cs-scroll');
   let lastFocus = null;
@@ -820,7 +876,7 @@ function initCaseStudyModal() {
     if (lastFocus) lastFocus.focus();
   }
 
-  openBtn.addEventListener('click', open);
+  openBtns.forEach(btn => btn.addEventListener('click', open));
   modal.querySelectorAll('[data-cs-close]').forEach(el => el.addEventListener('click', close));
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && modal.classList.contains('open')) close();

@@ -2223,15 +2223,21 @@ body.cs-open { overflow: hidden; }
   .about-grid { grid-template-columns: 1fr; gap: 48px; }
   .about-visual { height: 280px; }
   .projects-layout { grid-template-columns: 1fr; }
-  .projects-sticky {
-    position: static;
-    transform: none;
-    height: auto;
-    padding: 0 0 40px;
-  }
+  /* The sticky panel can only show project 01 once scroll-swapping is
+     disabled. Each mockup gets its own injected .pm-info card instead. */
+  .projects-sticky { display: none; }
   .proj-rail { display: none; }
   .projects-scroll { padding: 0 0 80px; }
-  .project-visual-block { min-height: auto; margin-bottom: 40px; }
+  .project-visual-block {
+    min-height: auto;
+    margin-bottom: 56px;
+    flex-direction: column;
+    gap: 28px;
+  }
+  .pm-info { width: 100%; max-width: 720px; }
+  .pm-info .project-counter { margin-bottom: 14px; }
+  .pm-info .project-name { font-size: clamp(1.5rem, 6vw, 2rem); margin-bottom: 16px; }
+  .pm-info .project-desc { margin-bottom: 20px; }
 }
 
 @media (max-width: 960px) {

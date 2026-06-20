@@ -10,3 +10,4 @@ node_modules/
 dist/
 .agents/
 skills-lock.json
+CLAUDE.md

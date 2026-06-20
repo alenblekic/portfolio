@@ -8,3 +8,5 @@ Thumbs.db
 # Dependencies / build (none currently, future-proofing)
 node_modules/
 dist/
+.agents/
+skills-lock.json

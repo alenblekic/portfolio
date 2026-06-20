@@ -1,0 +1,14 @@
+{
+  "name": "Alen Blekic — AI Developer",
+  "short_name": "Alen Blekic",
+  "description": "AI developer building deployed full-stack apps and automation, backed by an IT Operations & Azure cloud foundation.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    { "src": "img/favicon.svg", "type": "image/svg+xml", "sizes": "any" },
+    { "src": "img/favicon-32.png", "type": "image/png", "sizes": "32x32" },
+    { "src": "img/apple-touch-icon.png", "type": "image/png", "sizes": "180x180" }
+  ]
+}

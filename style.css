@@ -262,7 +262,7 @@ img { display: block; max-width: 100%; }
   display: flex;
   flex-direction: column;
   gap: 18px;
-  width: clamp(280px, 26vw, 360px);
+  width: clamp(370px, 28vw, 410px);
   flex-shrink: 0;
 }
 
@@ -368,8 +368,17 @@ img { display: block; max-width: 100%; }
   color: var(--grey);
   margin: 0;
 }
-.featured-tags { display: flex; flex-wrap: wrap; gap: 7px; }
-.featured-card .project-actions { margin-top: 4px; }
+.featured-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+/* Compact chips so all three fit one line in the narrow hero card */
+.featured-tags .tag {
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  gap: 5px;
+  letter-spacing: 0.03em;
+}
+.featured-tags .tag-ico { height: 11px; }
+.featured-card .project-actions { margin-top: 4px; flex-wrap: nowrap; justify-content: center; }
+.featured-card .project-link, .featured-card .project-casestudy { white-space: nowrap; flex-shrink: 0; }
 .cta-status {
   display: inline-flex; align-items: center; gap: 7px;
   font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase;

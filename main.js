@@ -22,9 +22,7 @@ const PREFERS_REDUCED_MOTION =
 /* ── Utility: wait for DOM ────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
   initNavbar();
-  initClock();
-  initCtaPulse();
-  initCtaPulse('clock-card', 'clock-canvas');
+  initCtaPulse('featured-card', 'featured-canvas');
   initThreeHero();
   initHeroAnimation();
   initScrollAnimations();
@@ -292,198 +290,107 @@ function initCtaPulse(cardId = 'cta-card', canvasId = 'cta-canvas') {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   THREE.JS HERO
+   HERO BACKGROUND — WebGL2 coral nebula shader
 ───────────────────────────────────────────────────────── */
 function initThreeHero() {
   const canvas = document.getElementById('three-canvas');
-  if (!canvas || typeof THREE === 'undefined') return;
+  if (!canvas) return;
+  const gl = canvas.getContext('webgl2');
+  if (!gl) return; // no WebGL2 → dark hero (body bg + scrim show through)
 
   const isMobile = window.innerWidth < 768;
 
-  /* Scene */
-  const scene    = new THREE.Scene();
-  const camera   = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-  camera.position.z = 5;
+  const vertSrc = `#version 300 es
+precision highp float;
+in vec4 position;
+void main(){ gl_Position = position; }`;
 
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1 : 1.5));
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setClearColor(0x000000, 0);
-
-  /* Main wireframe icosahedron */
-  const geoIco    = new THREE.IcosahedronGeometry(1.4, 1);
-  const matWire   = new THREE.MeshBasicMaterial({
-    color: 0xD97757,
-    wireframe: true,
-    transparent: true,
-    opacity: 0.55,
-  });
-  const ico = new THREE.Mesh(geoIco, matWire);
-  scene.add(ico);
-
-  /* Inner solid icosahedron for depth */
-  const geoInner  = new THREE.IcosahedronGeometry(0.85, 0);
-  const matInner  = new THREE.MeshBasicMaterial({
-    color: 0xB85C3E,
-    wireframe: true,
-    transparent: true,
-    opacity: 0.25,
-  });
-  const inner = new THREE.Mesh(geoInner, matInner);
-  scene.add(inner);
-
-  /* Extra nested wireframe shell (mid layer) */
-  const geoMid = new THREE.IcosahedronGeometry(1.12, 1);
-  const matMid = new THREE.MeshBasicMaterial({
-    color: 0xE8957A, wireframe: true, transparent: true, opacity: 0.18,
-  });
-  const mid = new THREE.Mesh(geoMid, matMid);
-  scene.add(mid);
-
-  /* Bright additive core */
-  const core = new THREE.Mesh(
-    new THREE.SphereGeometry(0.34, 20, 20),
-    new THREE.MeshBasicMaterial({ color: 0xFFB599, transparent: true, opacity: 0.28,
-      blending: THREE.AdditiveBlending, depthWrite: false })
-  );
-  scene.add(core);
-
-  /* Breathing particle shell hugging the sphere (fibonacci distribution) */
-  const SHELL = isMobile ? 400 : 1600;
-  const shellPos   = new Float32Array(SHELL * 3);
-  const shellDir   = [];
-  const shellPhase = new Float32Array(SHELL);
-  const golden = Math.PI * (3 - Math.sqrt(5));
-  for (let i = 0; i < SHELL; i++) {
-    const y   = 1 - (i / (SHELL - 1)) * 2;
-    const rad = Math.sqrt(1 - y * y);
-    const th  = golden * i;
-    const dir = new THREE.Vector3(Math.cos(th) * rad, y, Math.sin(th) * rad);
-    shellDir.push(dir);
-    shellPhase[i] = Math.random() * Math.PI * 2;
-    shellPos[i*3] = dir.x * 1.55; shellPos[i*3+1] = dir.y * 1.55; shellPos[i*3+2] = dir.z * 1.55;
+  /* Fractal-noise nebula by Matthias Hurrle (@atzedent), recoloured into the
+     portfolio's coral palette: warm coral cloud base, coral→warm-highlight
+     light points, coral dust, and a faint warm floor so it blends with
+     #0a0a0a. Structure (rnd/noise/fbm/clouds) is unchanged. */
+  const fragSrc = `#version 300 es
+precision highp float;
+out vec4 O;
+uniform vec2 resolution;
+uniform float time;
+#define FC gl_FragCoord.xy
+#define T time
+#define R resolution
+#define MN min(R.x,R.y)
+float rnd(vec2 p){ p=fract(p*vec2(12.9898,78.233)); p+=dot(p,p+34.56); return fract(p.x*p.y); }
+float noise(in vec2 p){ vec2 i=floor(p),f=fract(p),u=f*f*(3.-2.*f);
+  float a=rnd(i),b=rnd(i+vec2(1,0)),c=rnd(i+vec2(0,1)),d=rnd(i+1.);
+  return mix(mix(a,b,u.x),mix(c,d,u.x),u.y); }
+float fbm(vec2 p){ float t=.0,a=1.; mat2 m=mat2(1.,-.5,.2,1.2);
+  for(int i=0;i<5;i++){ t+=a*noise(p); p*=2.*m; a*=.5; } return t; }
+float clouds(vec2 p){ float d=1.,t=.0;
+  for(float i=.0;i<3.;i++){ float a=d*fbm(i*10.+p.x*.2+.2*(1.+i)*p.y+d+i*i+p); t=mix(t,d,a); d=a; p*=2./(i+1.); } return t; }
+void main(void){
+  vec2 uv=(FC-.5*R)/MN, st=uv*vec2(2,1);
+  vec3 col=vec3(0);
+  float bg=clouds(vec2(st.x+T*.5,-st.y));
+  uv*=1.-.3*(sin(T*.2)*.5+.5);
+  for(float i=1.;i<12.;i++){
+    uv+=.1*cos(i*vec2(.1+.01*i,.8)+i*i+T*.5+.1*uv.x);
+    vec2 p=uv;
+    float d=length(p);
+    vec3 glow=mix(vec3(.95,.52,.38),vec3(1.,.83,.62),.5+.5*sin(i*1.7));
+    col+=.00125/d*glow;
+    float b=noise(i+p+bg*1.731);
+    col+=.002*b/length(max(p,vec2(b*p.x*.02,p.y)))*vec3(.92,.52,.38);
+    col=mix(col,bg*vec3(.24,.132,.096),d);
   }
-  const shellGeo = new THREE.BufferGeometry();
-  shellGeo.setAttribute('position', new THREE.BufferAttribute(shellPos, 3));
-  const shellMat = new THREE.PointsMaterial({
-    color: 0xFFB599, size: 0.03, transparent: true, opacity: 0.85,
-    blending: THREE.AdditiveBlending, depthWrite: false,
-  });
-  const shell = new THREE.Points(shellGeo, shellMat);
-  scene.add(shell);
+  col+=vec3(.016,.014,.012);
+  O=vec4(col,1);
+}`;
 
-  /* Background star/dust field (denser) */
-  const FIELD = isMobile ? 140 : 650;
-  const posArr = new Float32Array(FIELD * 3);
-  for (let i = 0; i < FIELD; i++) {
-    posArr[i * 3]     = (Math.random() - 0.5) * 22;
-    posArr[i * 3 + 1] = (Math.random() - 0.5) * 22;
-    posArr[i * 3 + 2] = (Math.random() - 0.5) * 14;
+  function compile(type, src){
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(s));
+    return s;
   }
-  const particleGeo = new THREE.BufferGeometry();
-  particleGeo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
-  const particleMat = new THREE.PointsMaterial({
-    color: 0xD97757, size: 0.055, transparent: true, opacity: 0.55,
-    blending: THREE.AdditiveBlending, depthWrite: false,
-  });
-  const particles = new THREE.Points(particleGeo, particleMat);
-  scene.add(particles);
+  const prog = gl.createProgram();
+  gl.attachShader(prog, compile(gl.VERTEX_SHADER, vertSrc));
+  gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fragSrc));
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { console.error(gl.getProgramInfoLog(prog)); return; }
+  gl.useProgram(prog);
 
-  /* Orbiting particle rings at different tilts */
-  function makeRing(count, radius, tilt, color, size) {
-    const arr = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      const a = (i / count) * Math.PI * 2;
-      arr[i*3]   = Math.cos(a) * radius;
-      arr[i*3+1] = (Math.random() - 0.5) * 0.08;
-      arr[i*3+2] = Math.sin(a) * radius;
-    }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(arr, 3));
-    const m = new THREE.PointsMaterial({ color, size, transparent: true, opacity: 0.7,
-      blending: THREE.AdditiveBlending, depthWrite: false });
-    const grp = new THREE.Group();
-    grp.add(new THREE.Points(g, m));
-    grp.rotation.x = tilt;
-    scene.add(grp);
-    return grp;
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, 1, -1, -1, 1, 1, 1, -1]), gl.STATIC_DRAW);
+  const posLoc = gl.getAttribLocation(prog, 'position');
+  gl.enableVertexAttribArray(posLoc);
+  gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+  const uRes  = gl.getUniformLocation(prog, 'resolution');
+  const uTime = gl.getUniformLocation(prog, 'time');
+
+  /* Render below native resolution — the fbm noise is GPU-heavy and the nebula
+     is soft, so a lower buffer looks identical at hero scale for far less cost.
+     Phones get the deepest cut. */
+  const resScale = isMobile ? 0.5 : 0.75;
+  function resize(){
+    const dpr = Math.min(window.devicePixelRatio || 1, 2) * resScale;
+    canvas.width  = Math.max(1, Math.floor(window.innerWidth  * dpr));
+    canvas.height = Math.max(1, Math.floor(window.innerHeight * dpr));
+    gl.viewport(0, 0, canvas.width, canvas.height);
   }
-  const ring1 = makeRing(isMobile ? 140 : 320, 2.05, 1.15, 0xD97757, 0.03);
-  const ring2 = makeRing(isMobile ? 100 : 240, 2.5,  -0.6, 0xE8957A, 0.026);
+  resize();
+  window.addEventListener('resize', resize);
 
-  /* Subtle ambient glow sphere */
-  const glowGeo = new THREE.SphereGeometry(2, 16, 16);
-  const glowMat = new THREE.MeshBasicMaterial({
-    color: 0x2E1810, transparent: true, opacity: 0.18,
-  });
-  const glow = new THREE.Mesh(glowGeo, glowMat);
-  scene.add(glow);
-
-  /* Mouse tracking */
-  let targetX = 0, targetY = 0;
-  let currentX = 0, currentY = 0;
-
-  if (!isMobile) {
-    window.addEventListener('mousemove', e => {
-      targetX = (e.clientX / window.innerWidth  - 0.5) * 1.4;
-      targetY = (e.clientY / window.innerHeight - 0.5) * 1.0;
-    });
+  const SPEED = 0.5; // calm drift (lower = slower)
+  let t = 0;
+  function animate(){
+    t += 0.016 * SPEED;
+    gl.uniform2f(uRes, canvas.width, canvas.height);
+    gl.uniform1f(uTime, t);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
-
-  /* Resize */
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
-
-  /* Animate */
-  const clock3 = new THREE.Clock();
-  function animate() {
-    const t = clock3.getElapsedTime();
-
-    currentX += (targetX - currentX) * 0.05;
-    currentY += (targetY - currentY) * 0.05;
-
-    /* Nested shells rotating against each other + mouse parallax */
-    ico.rotation.x = t * 0.18 + currentY * 0.6;
-    ico.rotation.y = t * 0.22 + currentX * 0.6;
-    mid.rotation.x = t * 0.26 + currentY * 0.5;
-    mid.rotation.y = -t * 0.20 + currentX * 0.5;
-    inner.rotation.x = -t * 0.14 + currentY * 0.4;
-    inner.rotation.y = -t * 0.17 + currentX * 0.4;
-
-    /* Breathing particle shell */
-    const sp = shellGeo.attributes.position.array;
-    const breath = 1 + Math.sin(t * 0.8) * 0.05;
-    for (let i = 0; i < SHELL; i++) {
-      const d = shellDir[i];
-      const r = (1.5 + Math.sin(t * 1.6 + shellPhase[i]) * 0.08) * breath;
-      sp[i*3] = d.x * r; sp[i*3+1] = d.y * r; sp[i*3+2] = d.z * r;
-    }
-    shellGeo.attributes.position.needsUpdate = true;
-    shell.rotation.y = t * 0.06 + currentX * 0.5;
-    shell.rotation.x = currentY * 0.5;
-    shellMat.opacity = 0.7 + Math.sin(t * 1.1) * 0.18;
-
-    /* Pulsing core */
-    const pulse = 1 + Math.sin(t * 2.2) * 0.18;
-    core.scale.setScalar(pulse);
-    core.material.opacity = 0.22 + Math.sin(t * 2.2) * 0.12;
-
-    /* Orbiting rings */
-    ring1.rotation.z = t * 0.32;
-    ring1.rotation.y = t * 0.1 + currentX * 0.3;
-    ring2.rotation.z = -t * 0.24;
-    ring2.rotation.y = -t * 0.08 + currentX * 0.3;
-
-    /* Twinkling field */
-    particles.rotation.y = t * 0.04 + currentX * 0.2;
-    particles.rotation.x = Math.sin(t * 0.1) * 0.1 + currentY * 0.2;
-    particleMat.opacity = 0.4 + Math.sin(t * 1.3) * 0.2;
-
-    renderer.render(scene, camera);
-  }
+  animate(); // immediate first frame (no black flash before the loop starts)
   animateWhenVisible(canvas, animate);
 }
 
@@ -916,6 +823,7 @@ function initCaseStudyModal() {
   // Desktop sticky button + any mobile per-project Case Study buttons.
   const openBtns = [
     document.getElementById('project-casestudy'),
+    document.getElementById('hero-casestudy'),
     ...document.querySelectorAll('.pm-casestudy'),
   ].filter(Boolean);
   if (!modal || !openBtns.length) return;

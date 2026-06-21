@@ -8,6 +8,17 @@
 /* ── GSAP Plugin Registration ─────────────────────────────── */
 gsap.registerPlugin(ScrollTrigger);
 
+/* ── Reduced motion ───────────────────────────────────────────
+   Users who ask for reduced motion get a static page: every
+   continuous rAF loop, infinite GSAP timeline, and auto-cycling
+   interval collapses to a single resting frame. The CSS @media
+   guard already neutralises CSS animations/transitions; this is
+   the JS half (canvases, GSAP, setInterval) that the CSS can't
+   reach. Each animation init checks this flag. ── */
+const PREFERS_REDUCED_MOTION =
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 /* ── Utility: wait for DOM ────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
   initNavbar();
@@ -42,6 +53,8 @@ document.addEventListener('DOMContentLoaded', () => {
    CPU/battery savings on mobile where many canvases stack up.
 ───────────────────────────────────────────────────────── */
 function animateWhenVisible(target, frame) {
+  // Reduced motion: paint one resting frame, never start the loop.
+  if (PREFERS_REDUCED_MOTION) { frame(); return; }
   let raf = null;
   const loop = () => { frame(); raf = requestAnimationFrame(loop); };
   const io = new IntersectionObserver(([entry]) => {
@@ -487,32 +500,83 @@ function initHeroAnimation() {
   if (!typeTarget) return;
 
   const NAME = 'Alen';
-  let i = 0;
 
-  function type() {
-    if (i < NAME.length) {
-      typeTarget.textContent += NAME[i];
-      i++;
-      setTimeout(type, 130);
-    } else {
-      // Blink briefly then fade cursor out
-      setTimeout(() => {
-        gsap.to(cursorBlink, { opacity: 0, duration: 0.5, ease: 'power2.out' });
-        // Reveal remaining hero elements
-        gsap.to(subtitle, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', delay: 0.1 });
-        gsap.to(location, { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out', delay: 0.35 });
-        gsap.to(cta,      { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out', delay: 0.55 });
-      }, 800);
-    }
+  // Reduced motion: show the finished hero instantly, no typing or stagger.
+  if (PREFERS_REDUCED_MOTION) {
+    typeTarget.textContent = NAME;
+    if (cursorBlink) { cursorBlink.style.animation = 'none'; cursorBlink.style.opacity = '0'; }
+    gsap.set([subtitle, location, cta], { opacity: 1, y: 0 });
+    return;
   }
 
-  setTimeout(type, 600);
+  // Name: smooth character stagger (each letter eases up + fades in).
+  typeTarget.innerHTML = NAME
+    .split('')
+    .map(ch => `<span class="hero-char" style="display:inline-block">${ch}</span>`)
+    .join('');
+  const chars = typeTarget.querySelectorAll('.hero-char');
+  gsap.set(chars, { opacity: 0, y: 16 });
+
+  // Subtitle: typed out character-by-character once the name lands. Fast
+  // (~26ms/char) so it stays snappy, with a blinking cursor while it types.
+  const SUBTITLE = subtitle.textContent;
+  // Reserve the line's height before emptying it, so clearing the text doesn't
+  // collapse the subtitle and shove the (vertically-centred) name upward when
+  // typing starts.
+  subtitle.style.minHeight = subtitle.offsetHeight + 'px';
+  subtitle.textContent = '';
+
+  function typeSubtitle() {
+    gsap.set(subtitle, { opacity: 1, y: 0 });
+    const cur = document.createElement('span');
+    cur.className = 'cursor-blink';
+    cur.textContent = '|';
+    subtitle.appendChild(cur);
+
+    let i = 0;
+    (function step() {
+      if (i < SUBTITLE.length) {
+        cur.insertAdjacentText('beforebegin', SUBTITLE[i++]);
+        setTimeout(step, 16);
+      } else {
+        cur.style.animation = 'none';
+        gsap.to(cur, { opacity: 0, duration: 0.35, ease: 'power2.out', onComplete: () => cur.remove() });
+        gsap.to(location, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' });
+        gsap.to(cta,      { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out', delay: 0.15 });
+      }
+    })();
+  }
+
+  gsap.timeline({ delay: 0.3 })
+    .to(chars, {
+      opacity: 1, y: 0,
+      duration: 0.5, ease: 'power3.out', stagger: 0.07,
+      // The instant the last letter ("n") lands, fade the name cursor and
+      // start typing the subtitle immediately — no pause in between.
+      onComplete: () => {
+        cursorBlink.style.animation = 'none'; // stop the infinite CSS blink so the fade shows
+        gsap.to(cursorBlink, { opacity: 0, duration: 0.2, ease: 'power2.out' });
+        typeSubtitle();
+      },
+    });
 }
 
 /* ─────────────────────────────────────────────────────────────
    GSAP SCROLL ANIMATIONS
 ───────────────────────────────────────────────────────── */
 function initScrollAnimations() {
+
+  // Reduced motion: reveal everything up-front instead of animating on scroll.
+  // .fade-up and .skill-bubble are hidden in CSS (opacity:0), so they must be
+  // shown explicitly or reduced-motion users would see blank sections.
+  if (PREFERS_REDUCED_MOTION) {
+    gsap.set([
+      '.fade-up', '.about-visual', '.about-content', '.stat-card', '.section-title',
+      '.timeline-item', '.edu-card', '.cert-card-v2', '.contact-heading',
+    ].join(', '), { opacity: 1, x: 0, y: 0 });
+    document.querySelectorAll('.skill-bubble').forEach(b => b.classList.add('visible'));
+    return;
+  }
 
   /* Generic fade-up on all .fade-up elements */
   gsap.utils.toArray('.fade-up').forEach(el => {
@@ -891,6 +955,12 @@ function initPipelineAnimation() {
     const nodes = flow.querySelectorAll('.pipeline-node');
     if (!nodes.length) return;
 
+    // Reduced motion: light the last node and stop (no cycling).
+    if (PREFERS_REDUCED_MOTION) {
+      nodes[nodes.length - 1].classList.add('active');
+      return;
+    }
+
     let current = 0;
     setInterval(() => {
       nodes.forEach(n => n.classList.remove('active'));
@@ -914,6 +984,15 @@ function initAuditMockup() {
   const bars = Array.from(mockup.querySelectorAll('.audit-score-fill'));
   const runBtn = mockup.querySelector('.audit-run');
   if (!stages.length || !scoresWrap) return;
+
+  // Reduced motion: render the finished report statically, skip the cycle.
+  if (PREFERS_REDUCED_MOTION) {
+    stages.forEach(s => { s.classList.remove('active'); s.classList.add('done'); });
+    if (runBtn) runBtn.classList.remove('running');
+    scoresWrap.classList.add('show');
+    bars.forEach(b => { b.style.width = (b.dataset.score || 0) + '%'; });
+    return;
+  }
 
   let timers = [];
   const clearTimers = () => { timers.forEach(clearTimeout); timers = []; };
@@ -1142,8 +1221,9 @@ function initSwedenRipple() {
     pt.y = e.clientY;
     const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
 
-    /* Spawn 3 rings with staggered delays */
-    [0, 180, 360].forEach(delay => {
+    /* Spawn 3 rings with staggered delays (skipped under reduced motion;
+       the static dot below still gives click feedback) */
+    if (!PREFERS_REDUCED_MOTION) [0, 180, 360].forEach(delay => {
       setTimeout(() => {
         const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         ring.setAttribute('cx', svgP.x);
@@ -1408,6 +1488,12 @@ function initAlenSignature() {
   const LEN = 8000; // safely exceeds the ALEN outline path length
   gsap.set(textEl, { strokeDasharray: LEN, strokeDashoffset: LEN });
 
+  // Reduced motion: show the finished signature, skip the draw/erase loop.
+  if (PREFERS_REDUCED_MOTION) {
+    gsap.set(textEl, { strokeDasharray: 'none', strokeDashoffset: 0 });
+    return;
+  }
+
   function runCycle() {
     gsap.set(textEl, { strokeDasharray: LEN, strokeDashoffset: LEN });
     const tl = gsap.timeline({ onComplete: () => gsap.delayedCall(2.2, runCycle) });
@@ -1436,6 +1522,9 @@ function initAlenSignature() {
 function initSectionFlash() {
   const flash = document.getElementById('section-flash');
   if (!flash || typeof gsap === 'undefined') return;
+
+  // Reduced motion: no sweeping flash on section changes.
+  if (PREFERS_REDUCED_MOTION) return;
 
   let isAnimating = false;
 
@@ -1715,6 +1804,9 @@ function initAboutSlideshow() {
       bar.classList.add('pulse');
     }
   }
+
+  // Reduced motion: hold on the first slide, no auto-advance.
+  if (PREFERS_REDUCED_MOTION) return;
 
   setInterval(() => goTo(current + 1), 3000);
 }
@@ -2057,6 +2149,20 @@ function initSaturn() {
     glow.addColorStop(1,   'rgba(0,0,0,0)');
     ctx.beginPath(); ctx.arc(CX, CY, R + 32, 0, Math.PI * 2);
     ctx.fillStyle = glow; ctx.fill();
+  }
+
+  // Reduced motion: paint Saturn once and stop — no orbit, no drifting stars.
+  if (PREFERS_REDUCED_MOTION) {
+    ctx.clearRect(0, 0, SIZE, SIZE);
+    drawSectionStarfield(0);
+    drawNebulae();
+    drawStars(bgStars, 0);
+    drawStars(ringStars, 0);
+    drawRingsHalf(Math.PI, Math.PI * 2);
+    drawGlobe();
+    drawRingsHalf(0, Math.PI);
+    drawStars(fgStars, 0);
+    return;
   }
 
   let raf;

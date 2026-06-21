@@ -620,6 +620,11 @@ img { display: block; max-width: 100%; }
 }
 
 .about-content .section-label { margin-bottom: 8px; }
+/* Pull the divider line out to the page edge (32px) so it matches the other
+   full-bleed section lines; the title below stays in the text column. The
+   line's right end is extended to the viewport edge by initSectionHeaderLines. */
+.about-content .sh { margin-left: -72px; }
+@media (max-width: 860px) { .about-content .sh { margin-left: -32px; } }
 .about-bio {
   color: var(--grey);
   margin-bottom: 20px;
@@ -1917,7 +1922,8 @@ body.cs-open { overflow: hidden; }
 }
 .edu-card:hover::after { width: 80%; }
 .edu-card > * { position: relative; z-index: 1; }
-.edu-icon { font-size: 2.5rem; line-height: 1; }
+.edu-icon { color: var(--red); line-height: 0; }
+.edu-icon svg { width: 44px; height: 44px; }
 .edu-degree {
   font-family: var(--font-display);
   font-size: 1.5rem;
@@ -2056,7 +2062,7 @@ body.cs-open { overflow: hidden; }
 .cert-footer-v2 {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   font-size: 0.72rem;
   font-family: var(--font-mono);
   color: rgba(255,255,255,0.25);

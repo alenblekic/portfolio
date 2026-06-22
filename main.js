@@ -35,8 +35,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initPipelineAnimation();
   initAuditMockup();
   initGlobe();
-  initSwedenParticles();
-  initToolkitParticles();
   initAlenSignature();
   initSectionFlash();
   initRainGrid();
@@ -1120,7 +1118,7 @@ function initSwedenRipple() {
   const svg = document.querySelector('.sweden-svg');
   if (!svg) return;
 
-  svg.style.cursor = 'crosshair';
+  svg.style.cursor = 'pointer';
 
   svg.addEventListener('click', e => {
     /* Convert screen coords → SVG viewBox coords */
@@ -1190,88 +1188,6 @@ function initSwedenRipple() {
   });
 }
 
-function initSwedenParticles() {
-  const wrap = document.querySelector('.sweden-map-wrap');
-  const svgEl = document.querySelector('.sweden-svg');
-  if (!wrap || !svgEl) return;
-
-  /* Create canvas overlay on top of the SVG */
-  const canvas = document.createElement('canvas');
-  canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;';
-  wrap.style.position = 'relative';
-  wrap.appendChild(canvas);
-
-  const PARTICLE_COUNT = 14;
-  const RED = 'rgba(217,119,87,';
-
-  /* Each particle travels vertically within the map bounds */
-  function makeParticle(w, h) {
-    const x = w * (0.08 + Math.random() * 0.84);
-    const goingUp = Math.random() < 0.5;
-    return {
-      x,
-      y: goingUp ? h * (0.3 + Math.random() * 0.65) : h * (0.05 + Math.random() * 0.35),
-      vy: goingUp ? -(0.06 + Math.random() * 0.14) : (0.06 + Math.random() * 0.14),
-      size: 0.9 + Math.random() * 1.2,
-      alpha: 0.15 + Math.random() * 0.55,
-      alphaDir: Math.random() < 0.5 ? 1 : -1,
-    };
-  }
-
-  let particles = [];
-  let raf;
-  let w = 0, h = 0;
-
-  function resize() {
-    const rect = svgEl.getBoundingClientRect();
-    w = rect.width  || wrap.offsetWidth;
-    h = rect.height || wrap.offsetHeight;
-    canvas.width  = w;
-    canvas.height = h;
-    if (!particles.length) {
-      for (let i = 0; i < PARTICLE_COUNT; i++) {
-        const p = makeParticle(w, h);
-        p.y = Math.random() * h; // scatter initially
-        particles.push(p);
-      }
-    }
-  }
-
-  function draw() {
-    if (!w || !h) { resize(); return; }
-
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, w, h);
-
-    for (const p of particles) {
-      p.y += p.vy;
-      p.alpha += p.alphaDir * 0.008;
-      if (p.alpha > 0.75) { p.alpha = 0.75; p.alphaDir = -1; }
-      if (p.alpha < 0.05) { p.alpha = 0.05; p.alphaDir =  1; }
-
-      /* Reset when particle exits top or bottom */
-      if (p.vy < 0 && p.y < -4)  { Object.assign(p, makeParticle(w, h)); p.vy = -(0.06 + Math.random() * 0.14); p.y = h + 2; }
-      if (p.vy > 0 && p.y > h+4) { Object.assign(p, makeParticle(w, h)); p.vy =   0.06 + Math.random() * 0.14;  p.y = -2; }
-
-      /* Draw glowing dot */
-      const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 2.5);
-      grad.addColorStop(0,   RED + p.alpha + ')');
-      grad.addColorStop(0.5, RED + (p.alpha * 0.4) + ')');
-      grad.addColorStop(1,   RED + '0)');
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size * 2.5, 0, Math.PI * 2);
-      ctx.fillStyle = grad;
-      ctx.fill();
-    }
-  }
-
-  /* Use ResizeObserver to handle the SVG sizing correctly */
-  const ro = new ResizeObserver(() => resize());
-  ro.observe(wrap);
-  resize();
-  animateWhenVisible(wrap, draw);
-}
-
 /* ─────────────────────────────────────────────────────────────
    COPY EMAIL TO CLIPBOARD
 ───────────────────────────────────────────────────────── */
@@ -1285,103 +1201,6 @@ function copyEmail(btn) {
     }, 2200);
   });
 }
-
-/* ─────────────────────────────────────────────────────────────
-   TOOLKIT CIRCLE PARTICLES
-───────────────────────────────────────────────────────── */
-function initToolkitParticles() {
-  const circle = document.querySelector('.toolkit-circle');
-  if (!circle) return;
-
-  const canvas = document.createElement('canvas');
-  canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;border-radius:50%;z-index:0;';
-  circle.style.position = 'relative';
-  circle.appendChild(canvas);
-
-  const PARTICLE_COUNT = 18;
-  const RED = 'rgba(217,119,87,';
-  let w = 0, h = 0, cx = 0, cy = 0, rad = 0;
-  let particles = [];
-
-  function makeParticle() {
-    // Random angle for x position, drift vertically
-    const angle = Math.random() * Math.PI * 2;
-    const dist  = Math.random() * rad * 0.88;
-    const goUp  = Math.random() < 0.5;
-    return {
-      x: cx + Math.cos(angle) * dist,
-      y: cy + Math.sin(angle) * dist,
-      vy: goUp ? -(0.05 + Math.random() * 0.12) : (0.05 + Math.random() * 0.12),
-      size: 1.0 + Math.random() * 1.4,
-      alpha: 0.1 + Math.random() * 0.5,
-      alphaDir: Math.random() < 0.5 ? 1 : -1,
-    };
-  }
-
-  function resize() {
-    const rect = circle.getBoundingClientRect();
-    w = rect.width  || circle.offsetWidth;
-    h = rect.height || circle.offsetHeight;
-    canvas.width  = w;
-    canvas.height = h;
-    cx  = w / 2;
-    cy  = h / 2;
-    rad = Math.min(w, h) / 2;
-    particles = [];
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
-      particles.push(makeParticle());
-    }
-  }
-
-  function inCircle(x, y) {
-    const dx = x - cx, dy = y - cy;
-    return dx * dx + dy * dy <= rad * rad * 0.92;
-  }
-
-  function draw() {
-    if (!w) { resize(); return; }
-
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, w, h);
-
-    // Clip to circle
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, cy, rad * 0.96, 0, Math.PI * 2);
-    ctx.clip();
-
-    for (const p of particles) {
-      p.y += p.vy;
-      p.alpha += p.alphaDir * 0.006;
-      if (p.alpha > 0.65) { p.alpha = 0.65; p.alphaDir = -1; }
-      if (p.alpha < 0.04) { p.alpha = 0.04; p.alphaDir =  1; }
-
-      // Reset particle when it exits the circle vertically
-      if (!inCircle(p.x, p.y)) {
-        const np = makeParticle();
-        // Spawn at bottom if going up, top if going down
-        np.y  = p.vy < 0 ? cy + rad * 0.85 : cy - rad * 0.85;
-        Object.assign(p, np);
-      }
-
-      const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 2.8);
-      grad.addColorStop(0,   RED + p.alpha + ')');
-      grad.addColorStop(0.5, RED + (p.alpha * 0.35) + ')');
-      grad.addColorStop(1,   RED + '0)');
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size * 2.8, 0, Math.PI * 2);
-      ctx.fillStyle = grad;
-      ctx.fill();
-    }
-
-    ctx.restore();
-  }
-
-  new ResizeObserver(() => resize()).observe(circle);
-  resize();
-  animateWhenVisible(circle, draw);
-}
-
 
 /* ─────────────────────────────────────────────────────────────
    MOBILE NAV TOGGLE

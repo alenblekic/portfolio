@@ -180,58 +180,21 @@
         <!-- CENTER: TOOLKIT Circle -->
         <div class="toolkit-outer">
           <div class="toolkit-circle">
-            <!-- Crosshair -->
-            <svg class="crosshair-svg" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <filter id="crosshair-glow" x="-40%" y="-40%" width="180%" height="180%">
-                  <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="blur"/>
-                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-                </filter>
-                <linearGradient id="ch-h" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%"   stop-color="#D97757" stop-opacity="0"/>
-                  <stop offset="30%"  stop-color="#D97757" stop-opacity="0.45"/>
-                  <stop offset="50%"  stop-color="#D97757" stop-opacity="0.6"/>
-                  <stop offset="70%"  stop-color="#D97757" stop-opacity="0.45"/>
-                  <stop offset="100%" stop-color="#D97757" stop-opacity="0"/>
-                </linearGradient>
-                <linearGradient id="ch-v" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%"   stop-color="#D97757" stop-opacity="0"/>
-                  <stop offset="30%"  stop-color="#D97757" stop-opacity="0.45"/>
-                  <stop offset="50%"  stop-color="#D97757" stop-opacity="0.6"/>
-                  <stop offset="70%"  stop-color="#D97757" stop-opacity="0.45"/>
-                  <stop offset="100%" stop-color="#D97757" stop-opacity="0"/>
-                </linearGradient>
-              </defs>
-              <g filter="url(#crosshair-glow)">
-                <line x1="10" y1="250" x2="490" y2="250" stroke="url(#ch-h)" stroke-width="1"/>
-                <line x1="250" y1="10" x2="250" y2="490" stroke="url(#ch-v)" stroke-width="1"/>
-              </g>
-            </svg>
-            <!-- Rotating glow arc -->
+            <!-- Slow soft beam sweeping the ring -->
             <svg class="glow-ring-svg" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <filter id="arc-blur" x="-30%" y="-30%" width="160%" height="160%">
-                  <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur"/>
+                  <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="blur"/>
                   <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
                 </filter>
               </defs>
-              <!-- Bright leading arc -->
               <circle cx="250" cy="250" r="244"
-                stroke="#D97757" stroke-width="2.5"
-                stroke-dasharray="90 1440" stroke-linecap="round"
-                filter="url(#arc-blur)" opacity="1">
+                stroke="#D97757" stroke-width="3"
+                stroke-dasharray="200 1330" stroke-linecap="round"
+                filter="url(#arc-blur)" opacity="0.45">
                 <animateTransform attributeName="transform" type="rotate"
                   from="0 250 250" to="360 250 250"
-                  dur="6s" repeatCount="indefinite"/>
-              </circle>
-              <!-- Wider soft glow behind it -->
-              <circle cx="250" cy="250" r="244"
-                stroke="#B85C3E" stroke-width="6"
-                stroke-dasharray="160 1370" stroke-linecap="round"
-                opacity="0.4">
-                <animateTransform attributeName="transform" type="rotate"
-                  from="-8 250 250" to="352 250 250"
-                  dur="6s" repeatCount="indefinite"/>
+                  dur="24s" repeatCount="indefinite"/>
               </circle>
             </svg>
             <!-- Content -->

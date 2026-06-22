@@ -226,13 +226,13 @@ img { display: block; max-width: 100%; }
   pointer-events: none;
   background:
     linear-gradient(90deg, rgba(10,10,10,0.88) 0%, rgba(10,10,10,0.58) 30%, rgba(10,10,10,0.06) 56%, rgba(10,10,10,0.26) 100%),
-    linear-gradient(180deg, rgba(10,10,10,0) 62%, rgba(10,10,10,0.94) 100%);
+    linear-gradient(180deg, rgba(10,10,10,0) 50%, rgba(10,10,10,0.8) 82%, rgba(10,10,10,1) 100%);
 }
 /* Mobile content is centred, so swap the left-weighted scrim for a vertical
    one that keeps the stacked text/cards legible over the shader. */
 @media (max-width: 960px) {
   .hero::before {
-    background: linear-gradient(180deg, rgba(10,10,10,0.5) 0%, rgba(10,10,10,0.32) 42%, rgba(10,10,10,0.88) 100%);
+    background: linear-gradient(180deg, rgba(10,10,10,0.5) 0%, rgba(10,10,10,0.32) 42%, rgba(10,10,10,0.85) 80%, rgba(10,10,10,1) 100%);
   }
 }
 .hero-inner {
@@ -882,21 +882,44 @@ img { display: block; max-width: 100%; }
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: radial-gradient(circle at center, rgba(100,0,0,0.22) 0%, rgba(40,0,0,0.10) 45%, transparent 72%);
+  /* Rim vignette — darkens the edge so the center reads as lit */
+  background: radial-gradient(circle at center, transparent 50%, rgba(0,0,0,0.28) 100%);
 }
-.crosshair-svg {
+/* Breathing ambient glow — warm coral, pulses slowly */
+.toolkit-circle::before {
+  content: "";
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
+  border-radius: 50%;
   pointer-events: none;
   z-index: 0;
-  animation: crosshair-spin 45s linear infinite;
+  background: radial-gradient(circle at center,
+    rgba(217,119,87,0.18) 0%,
+    rgba(160,60,20,0.09) 38%,
+    transparent 68%);
   transform-origin: center center;
+  animation: toolkit-breathe 6s ease-in-out infinite alternate;
 }
-@keyframes crosshair-spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+@keyframes toolkit-breathe {
+  from { opacity: 0.55; transform: scale(1); }
+  to   { opacity: 1;    transform: scale(1.06); }
+}
+/* Static lit core — tighter, brighter, always on */
+.toolkit-circle::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(circle at center,
+    rgba(217,119,87,0.10) 0%,
+    rgba(217,119,87,0.04) 28%,
+    transparent 52%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .toolkit-circle::before { animation: none; opacity: 0.85; }
+  .glow-ring-svg circle * { display: none; }   /* freeze the sweep */
 }
 .glow-ring-svg {
   position: absolute;
@@ -1057,9 +1080,7 @@ img { display: block; max-width: 100%; }
     padding: 30px 18px;
     background: linear-gradient(155deg, rgba(40,16,10,0.35), rgba(12,8,8,0.25));
   }
-  .crosshair-svg,
   .glow-ring-svg { display: none; }
-  .toolkit-circle canvas { display: none; }   /* round-clipped particle layer */
   .toolkit-inner { width: 100%; }
   .toolkit-bubbles { max-width: 100%; }
 }

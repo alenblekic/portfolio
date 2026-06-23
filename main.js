@@ -893,8 +893,19 @@ function initProjectsScroll() {
 
   stage.classList.add('cinematic');
 
+  // Center scroll rail: a coral→accent fill + comet head that glide down the
+  // gutter with scroll. Positions are GSAP-eased off the pinned timeline so the
+  // rail feels smooth rather than snapping frame-to-frame.
+  const rail      = document.getElementById('proj-rail');
+  const railFill  = document.getElementById('proj-rail-fill');
+  const railComet = document.getElementById('proj-rail-comet');
+  let   railH     = rail ? rail.offsetHeight : 300;
+  const fillTo  = railFill  ? gsap.quickTo(railFill,  'scaleY', { duration: 0.5, ease: 'power3' }) : null;
+  const cometTo = railComet ? gsap.quickTo(railComet, 'y',      { duration: 0.5, ease: 'power3' }) : null;
+
   const nodes = gsap.utils.toArray('.proj-progress-node');
   function setActive(idx) {
+    if (PROJECTS[idx]) applyAccent(stage, PROJECTS[idx]); // rail inherits active accent
     nodes.forEach((n, i) => {
       n.classList.toggle('active', i <= idx);
       n.classList.toggle('current', i === idx);
@@ -925,7 +936,13 @@ function initProjectsScroll() {
       pinSpacing: true,
       anticipatePin: 1,
       invalidateOnRefresh: true,
-      onUpdate: () => setActive(Math.min(blocks.length - 1, Math.max(0, Math.floor(tl.time())))),
+      onRefresh: () => { if (rail) railH = rail.offsetHeight; },
+      onUpdate: () => {
+        const p = tl.progress();
+        setActive(Math.min(blocks.length - 1, Math.max(0, Math.floor(tl.time()))));
+        if (fillTo)  fillTo(p);
+        if (cometTo) cometTo(p * railH);
+      },
     },
   });
 

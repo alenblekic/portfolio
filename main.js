@@ -615,6 +615,7 @@ const PROJECTS = [
     tags: ['Next.js 15', 'TypeScript', 'Claude', 'Firecrawl', 'Redis', 'Vercel'],
     link: 'https://auditly-pro.vercel.app/',
     caseStudy: true,
+    accent: '#F5A623', accent2: '#E8623C',
   },
   {
     counter: '02 / 04',
@@ -622,6 +623,7 @@ const PROJECTS = [
     desc: 'Full conversational AI agent that captures structured lead data and triggers multi-step workflows via Make.com API integration. Built conditional logic for data validation, email capture, and automated follow-up processes.',
     tags: ['Voiceflow', 'Make.com'],
     caseStudy: true,
+    accent: '#4F8DFF', accent2: '#6C5CE7',
   },
   {
     counter: '03 / 04',
@@ -629,6 +631,7 @@ const PROJECTS = [
     desc: 'AI customer support workflow agent handling user queries, delivering contextual responses, and triggering backend automation via Make.com. Implemented conditional refund workflow with data routing into Airtable for ticket processing.',
     tags: ['Voiceflow', 'Make.com', 'Airtable'],
     caseStudy: true,
+    accent: '#2DD4BF', accent2: '#22D3EE',
   },
   {
     counter: '04 / 04',
@@ -636,8 +639,17 @@ const PROJECTS = [
     desc: 'Intent-based product recommendation logic with category recognition (e.g. "club", "date night") to dynamically suggest relevant products. API-based email capture and automated data routing via Make.com; structured support intake routed into Airtable.',
     tags: ['Voiceflow', 'Make.com', 'Airtable'],
     caseStudy: true,
+    accent: '#E879C9', accent2: '#C084FC',
   },
 ];
+
+/* Apply a project's accent as CSS custom properties on an element so its
+   mockup and overlay theme off var(--accent) / var(--accent-2). */
+function applyAccent(el, p) {
+  if (!el || !p || !p.accent) return;
+  el.style.setProperty('--accent', p.accent);
+  el.style.setProperty('--accent-2', p.accent2 || p.accent);
+}
 
 /* ─────────────────────────────────────────────────────────────
    CASE STUDIES — deep-dive content for each project, rendered into
@@ -821,96 +833,114 @@ function tagHTML(name) {
   return `<span class="tag">${svg}${name}</span>`;
 }
 
+/* Shared inline icons for project action buttons (live link + case study). */
+const PROJ_LIVE_SVG = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M7 17L17 7M17 7H8M17 7V16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const PROJ_CS_SVG   = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+function projectActionsHTML(p, i) {
+  let inner = '';
+  if (p.link)      inner += `<a class="project-link" href="${p.link}" target="_blank" rel="noopener noreferrer"><span>View Live</span>${PROJ_LIVE_SVG}</a>`;
+  if (p.caseStudy) inner += `<button class="project-casestudy" type="button" data-index="${i}" aria-haspopup="dialog" aria-controls="cs-modal"><span>Case Study</span>${PROJ_CS_SVG}</button>`;
+  return inner ? `<div class="project-actions">${inner}</div>` : '';
+}
+
+/* ─────────────────────────────────────────────────────────────
+   PROJECTS — CINEMATIC SCROLL-EXPANSION (desktop, motion)
+   The stage pins; one project at a time, its mockup expands from a
+   small frame toward full-bleed with a slower parallax glow behind,
+   then its overlay copy reveals, then it hands off to the next.
+   Mobile and reduced-motion bail here and use the stacked cards
+   built by initProjectsMobile instead.
+───────────────────────────────────────────────────────── */
 function initProjectsScroll() {
-  if (window.innerWidth < 960) return; // sticky only on desktop
+  if (window.innerWidth < 960 || PREFERS_REDUCED_MOTION) return;
 
-  const blocks    = document.querySelectorAll('.project-visual-block');
-  const infoEl    = document.getElementById('project-info');
-  const counterEl = document.getElementById('project-counter');
-  const nameEl    = document.getElementById('project-name');
-  const descEl    = document.getElementById('project-desc');
-  const tagsEl    = document.getElementById('project-tags');
-  const linkEl    = document.getElementById('project-link');
-  const csEl      = document.getElementById('project-casestudy');
-  const railFill  = document.getElementById('proj-rail-fill');
-  const railNodes = Array.from(document.querySelectorAll('.proj-rail-node'));
+  const stage  = document.querySelector('.projects-stage');
+  const blocks = gsap.utils.toArray('.projects-scroll .project-visual-block');
+  if (!stage || !blocks.length) return;
 
-  if (!blocks.length || !infoEl) return;
-
-  let activeIndex = 0;
-
-  function updateNodes(index) {
-    railNodes.forEach((n, i) => {
-      n.classList.toggle('active', i <= index);
-      n.classList.toggle('current', i === index);
-    });
-  }
-  updateNodes(0);
-
-  // Glowing fill + comet head glide along the scroll. `scrub: 1` adds ~1s of
-  // smoothing so the fill eases in/out and slides to catch up rather than
-  // tracking the scroll position instantly.
-  const scrollEl = document.querySelector('.projects-scroll');
-  if (railFill && scrollEl) {
-    gsap.fromTo(railFill,
-      { height: '0%' },
-      {
-        height: '100%',
-        ease: 'none',
-        scrollTrigger: {
-          trigger: scrollEl,
-          start: 'top center',
-          end: 'bottom center',
-          scrub: 1,
-        },
-      }
-    );
-  }
-
-  function applyLink(p, index) {
-    if (linkEl) {
-      if (p.link) {
-        linkEl.href = p.link;
-        linkEl.style.display = 'inline-flex';
-      } else {
-        linkEl.removeAttribute('href');
-        linkEl.style.display = 'none';
-      }
-    }
-    if (csEl) {
-      csEl.style.display = p.caseStudy ? 'inline-flex' : 'none';
-      csEl.dataset.index = index;
-    }
-  }
-  applyLink(PROJECTS[0], 0);
-
-  function updateInfo(index) {
-    if (index === activeIndex) return;
-    activeIndex = index;
-    const p = PROJECTS[index];
-
-    gsap.to(infoEl, {
-      opacity: 0, y: 12, duration: 0.25, ease: 'power2.in',
-      onComplete: () => {
-        counterEl.textContent = p.counter;
-        nameEl.innerHTML      = p.name;
-        descEl.textContent    = p.desc;
-        tagsEl.innerHTML      = p.tags.map(tagHTML).join('');
-        applyLink(p, index);
-        updateNodes(index);
-        gsap.to(infoEl, { opacity: 1, y: 0, duration: 0.4, ease: 'power3.out' });
-      }
-    });
-  }
-
+  // Build each layer: a parallax .stage-glow behind, the mockup wrapped in a
+  // scalable .stage-media (so the cursor-tilt transform on .project-mockup
+  // never fights the GSAP scale), and an injected .stage-overlay of copy.
+  const media = [], glows = [], overlays = [];
   blocks.forEach((block, i) => {
-    ScrollTrigger.create({
-      trigger: block,
-      start: 'top center',
-      end: 'bottom center',
-      onEnter:     () => updateInfo(i),
-      onEnterBack: () => updateInfo(i),
+    const p = PROJECTS[i] || {};
+    const mockup = block.querySelector('.project-mockup');
+
+    applyAccent(block, p);
+
+    const glow = document.createElement('div');
+    glow.className = 'stage-glow';
+    glow.innerHTML = '<i></i><i></i><i></i>'; /* mesh blobs */
+    block.prepend(glow);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'stage-media';
+    if (mockup) { mockup.parentNode.insertBefore(wrap, mockup); wrap.appendChild(mockup); }
+
+    const overlay = document.createElement('div');
+    overlay.className = 'stage-overlay';
+    overlay.innerHTML =
+      `<div class="project-counter">${p.counter || ''}</div>` +
+      `<h3 class="project-name">${p.name || ''}</h3>` +
+      `<p class="project-desc">${p.desc || ''}</p>` +
+      `<div class="project-tags">${(p.tags || []).map(tagHTML).join('')}</div>` +
+      projectActionsHTML(p, i);
+    block.appendChild(overlay);
+
+    media.push(wrap); glows.push(glow); overlays.push(overlay);
+  });
+
+  stage.classList.add('cinematic');
+
+  const nodes = gsap.utils.toArray('.proj-progress-node');
+  function setActive(idx) {
+    nodes.forEach((n, i) => {
+      n.classList.toggle('active', i <= idx);
+      n.classList.toggle('current', i === idx);
     });
+    blocks.forEach((b, i) => b.classList.toggle('is-active', i === idx));
+    playProjectTL(idx); // run only the active project's mockup loop
+  }
+
+  // Resting state: project 1 visible but small (ready to expand), rest hidden.
+  blocks.forEach((b, i) => gsap.set(b, { autoAlpha: i === 0 ? 1 : 0 }));
+  media.forEach(m  => gsap.set(m, { scale: 0.6, transformOrigin: '50% 50%' }));
+  glows.forEach(g  => gsap.set(g, { scale: 0.7, opacity: 0.22 }));
+  overlays.forEach(o => gsap.set(o, { autoAlpha: 0, y: 36 }));
+  setActive(0);
+
+  // One scrubbed timeline. Each project owns a 1-unit beat at integer position
+  // i: expand + parallax glow + overlay reveal, then (all but the last) contract
+  // and fade as the next takes over. Beats at integer times let us map the
+  // progress dots straight off tl.time().
+  const tl = gsap.timeline({
+    defaults: { ease: 'none' },
+    scrollTrigger: {
+      trigger: '.projects-stage',
+      start: 'top top',
+      end: () => '+=' + (blocks.length * Math.max(window.innerHeight, 620)),
+      scrub: true,
+      pin: '.projects-stage',
+      pinSpacing: true,
+      anticipatePin: 1,
+      invalidateOnRefresh: true,
+      onUpdate: () => setActive(Math.min(blocks.length - 1, Math.max(0, Math.floor(tl.time())))),
+    },
+  });
+
+  blocks.forEach((b, i) => {
+    const m = media[i], g = glows[i], o = overlays[i];
+    tl.to(b, { autoAlpha: 1, duration: 0.18 }, i)
+      .fromTo(m, { scale: 0.6 }, { scale: 1, duration: 0.5, ease: 'power2.out' }, i)
+      .fromTo(g, { scale: 0.7, opacity: 0.22 }, { scale: 1.08, opacity: 0.5, duration: 0.5 }, i)
+      .fromTo(o, { autoAlpha: 0, y: 36 }, { autoAlpha: 1, y: 0, duration: 0.32, ease: 'power3.out' }, i + 0.28);
+    if (i < blocks.length - 1) {
+      tl.to(o, { autoAlpha: 0, y: -24, duration: 0.18, ease: 'power2.in' }, i + 0.78)
+        .to(m, { scale: 1.12, duration: 0.22, ease: 'power2.in' }, i + 0.78)
+        .to(g, { opacity: 0.15, duration: 0.22 }, i + 0.78)
+        .to(b, { autoAlpha: 0, duration: 0.20, ease: 'power2.in' }, i + 0.80);
+    }
   });
 }
 
@@ -925,31 +955,19 @@ function initProjectsScroll() {
    its own copy. Desktop never runs this.
 ───────────────────────────────────────────────────────── */
 function initProjectsMobile() {
-  if (window.innerWidth >= 960) return;
+  // Runs for narrow viewports OR reduced-motion (the cinematic stage bails in
+  // both cases). Renders each project as a stacked card under its mockup.
+  if (window.innerWidth >= 960 && !PREFERS_REDUCED_MOTION) return;
 
   const scrollEl = document.querySelector('.projects-scroll');
   if (!scrollEl || scrollEl.dataset.mobileBuilt) return;
   const blocks = scrollEl.querySelectorAll('.project-visual-block');
   if (!blocks.length) return;
 
-  const liveSvg = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M7 17L17 7M17 7H8M17 7V16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  const csSvg   = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-
   blocks.forEach((block, i) => {
     const p = PROJECTS[i];
     if (!p) return;
-
-    let actions = '';
-    if (p.link || p.caseStudy) {
-      let inner = '';
-      if (p.link) {
-        inner += `<a class="project-link" href="${p.link}" target="_blank" rel="noopener noreferrer"><span>View Live</span>${liveSvg}</a>`;
-      }
-      if (p.caseStudy) {
-        inner += `<button class="project-casestudy pm-casestudy" type="button" data-index="${i}" aria-haspopup="dialog" aria-controls="cs-modal"><span>Case Study</span>${csSvg}</button>`;
-      }
-      actions = `<div class="project-actions">${inner}</div>`;
-    }
+    applyAccent(block, p);
 
     const card = document.createElement('div');
     card.className = 'pm-info';
@@ -958,7 +976,7 @@ function initProjectsMobile() {
       `<h3 class="project-name">${p.name}</h3>` +
       `<p class="project-desc">${p.desc}</p>` +
       `<div class="project-tags">${p.tags.map(tagHTML).join('')}</div>` +
-      actions;
+      projectActionsHTML(p, i);
     block.appendChild(card);
   });
 
@@ -970,12 +988,11 @@ function initProjectsMobile() {
 ───────────────────────────────────────────────────────── */
 function initCaseStudyModal() {
   const modal = document.getElementById('cs-modal');
-  // Desktop sticky button + any mobile per-project Case Study buttons.
-  const openBtns = [
-    document.getElementById('project-casestudy'),
-    document.getElementById('hero-casestudy'),
-    ...document.querySelectorAll('.pm-casestudy'),
-  ].filter(Boolean);
+  // Every Case Study trigger: the hero card button plus the per-project buttons
+  // injected into the cinematic overlays (desktop) or the stacked cards (mobile).
+  // They all carry class .project-casestudy and a data-index. Runs after the
+  // project init functions, so the injected buttons already exist.
+  const openBtns = [...document.querySelectorAll('.project-casestudy')];
   if (!modal || !openBtns.length) return;
 
   const scrollEl = modal.querySelector('.cs-scroll');
@@ -1024,23 +1041,86 @@ function initCaseStudyModal() {
 /* ─────────────────────────────────────────────────────────────
    PIPELINE NODE ANIMATION (cycling active state)
 ───────────────────────────────────────────────────────── */
-function initPipelineAnimation() {
-  document.querySelectorAll('.pipeline-flow').forEach(flow => {
-    const nodes = flow.querySelectorAll('.pipeline-node');
-    if (!nodes.length) return;
+/* Registry of per-project mockup timelines so the cinematic stage plays only
+   the active project's animation and pauses the rest (one loop at a time). */
+const projectTL = {};
+let activeProjectIdx = -1;
+function registerProjectTL(index, tl) {
+  projectTL[index] = tl;
+  const cinematic = document.querySelector('.projects-stage.cinematic');
+  // Non-cinematic (mobile/reduced bail) → every mockup just plays. Cinematic →
+  // only project 0 starts; the rest wait for playProjectTL to activate them.
+  if (!cinematic || index === 0) tl.play(0); else tl.pause(0);
+}
+function playProjectTL(index) {
+  if (index === activeProjectIdx) return; // only act when the active project changes
+  activeProjectIdx = index;
+  Object.keys(projectTL).forEach(k => {
+    const tl = projectTL[k];
+    if (+k === index) tl.restart(); else tl.pause();
+  });
+}
+/* Glossy sheen-sweep layer (prepended so the real last-child keeps its bottom
+   rounding; the streak itself loops via CSS). */
+function addSheen(mockup) {
+  if (mockup.querySelector('.mockup-sheen')) return;
+  const sheen = document.createElement('div');
+  sheen.className = 'mockup-sheen';
+  sheen.innerHTML = '<span></span>';
+  mockup.prepend(sheen);
+}
 
-    // Reduced motion: light the last node and stop (no cycling).
+/* ─────────────────────────────────────────────────────────────
+   CHAT MOCKUPS (02–04) — GSAP loop: staggered message reveal, then
+   a pulse travels down the pipeline lighting nodes in sequence.
+───────────────────────────────────────────────────────── */
+function initPipelineAnimation() {
+  document.querySelectorAll('.chat-mockup').forEach(mockup => {
+    const block = mockup.closest('.project-visual-block');
+    const index = block ? +block.dataset.project : 0;
+    addSheen(mockup);
+
+    const msgs   = gsap.utils.toArray(mockup.querySelectorAll('.chat-msg'));
+    const flow   = mockup.querySelector('.pipeline-flow');
+    const nodes  = flow ? gsap.utils.toArray(flow.querySelectorAll('.pipeline-node')) : [];
+    const arrows = flow ? gsap.utils.toArray(flow.querySelectorAll('.pipeline-arrow')) : [];
+
+    // Reduced motion: show the finished conversation + lit last node, no loop.
     if (PREFERS_REDUCED_MOTION) {
-      nodes[nodes.length - 1].classList.add('active');
+      msgs.forEach(m => gsap.set(m, { opacity: 1, y: 0 }));
+      if (nodes.length) nodes[nodes.length - 1].classList.add('active');
       return;
     }
 
-    let current = 0;
-    setInterval(() => {
-      nodes.forEach(n => n.classList.remove('active'));
-      current = (current + 1) % nodes.length;
-      nodes[current].classList.add('active');
-    }, 900);
+    let pulse = null;
+    if (flow) { pulse = document.createElement('div'); pulse.className = 'pipeline-pulse'; flow.appendChild(pulse); }
+
+    const tl = gsap.timeline({ repeat: -1, repeatDelay: 1.1, paused: true });
+
+    tl.set(msgs, { opacity: 0, y: 14 })
+      .add(() => {
+        nodes.forEach(n => n.classList.remove('active'));
+        arrows.forEach(a => a.classList.remove('lit'));
+        if (pulse) gsap.set(pulse, { opacity: 0 });
+      }, 0)
+      .to(msgs, { opacity: 1, y: 0, duration: 0.4, stagger: 0.55, ease: 'power3.out' }, 0.2);
+
+    const pStart = 0.2 + msgs.length * 0.55 + 0.3;
+    if (nodes.length && pulse) {
+      tl.set(pulse, { opacity: 1, left: () => nodes[0].offsetLeft + nodes[0].offsetWidth / 2 }, pStart);
+      nodes.forEach((node, n) => {
+        const at = pStart + n * 0.5;
+        tl.add(() => {
+          nodes.forEach(x => x.classList.remove('active'));
+          node.classList.add('active');
+          if (arrows[n - 1]) arrows[n - 1].classList.add('lit');
+        }, at);
+        tl.to(pulse, { left: () => node.offsetLeft + node.offsetWidth / 2, duration: 0.45, ease: 'power1.inOut' }, at);
+      });
+      tl.to(pulse, { opacity: 0, duration: 0.3 }, pStart + nodes.length * 0.5);
+    }
+
+    registerProjectTL(index, tl);
   });
 }
 
@@ -1052,64 +1132,72 @@ function initPipelineAnimation() {
 function initAuditMockup() {
   const mockup = document.querySelector('.audit-mockup');
   if (!mockup) return;
+  const block = mockup.closest('.project-visual-block');
+  const index = block ? +block.dataset.project : 0;
+  addSheen(mockup);
 
-  const stages = Array.from(mockup.querySelectorAll('.audit-stage'));
+  const stagesWrap = mockup.querySelector('.audit-stages');
+  const stages = gsap.utils.toArray(mockup.querySelectorAll('.audit-stage'));
   const scoresWrap = mockup.querySelector('.audit-scores');
-  const bars = Array.from(mockup.querySelectorAll('.audit-score-fill'));
+  const bars = gsap.utils.toArray(mockup.querySelectorAll('.audit-score-fill'));
+  const nums = gsap.utils.toArray(mockup.querySelectorAll('.audit-score-num'));
   const runBtn = mockup.querySelector('.audit-run');
   if (!stages.length || !scoresWrap) return;
+
+  const targets = bars.map(b => +(b.dataset.score || 0));
 
   // Reduced motion: render the finished report statically, skip the cycle.
   if (PREFERS_REDUCED_MOTION) {
     stages.forEach(s => { s.classList.remove('active'); s.classList.add('done'); });
     if (runBtn) runBtn.classList.remove('running');
     scoresWrap.classList.add('show');
-    bars.forEach(b => { b.style.width = (b.dataset.score || 0) + '%'; });
+    bars.forEach((b, i) => { b.style.width = targets[i] + '%'; });
+    nums.forEach((n, i) => { n.textContent = targets[i]; });
     return;
   }
 
-  let timers = [];
-  const clearTimers = () => { timers.forEach(clearTimeout); timers = []; };
-  const after = (ms, fn) => timers.push(setTimeout(fn, ms));
+  // Scan-line that sweeps the stage list while the audit "thinks".
+  let scan = mockup.querySelector('.audit-scan');
+  if (!scan && stagesWrap) { scan = document.createElement('div'); scan.className = 'audit-scan'; stagesWrap.appendChild(scan); }
 
-  function reset() {
+  const tl = gsap.timeline({ repeat: -1, repeatDelay: 1.6, paused: true });
+
+  // Reset to a clean "before audit" state at the top of every loop.
+  tl.add(() => {
     stages.forEach(s => s.classList.remove('active', 'done'));
     scoresWrap.classList.remove('show');
     bars.forEach(b => { b.style.width = '0%'; });
-    if (runBtn) runBtn.classList.remove('running');
-  }
-
-  function runCycle() {
-    reset();
+    nums.forEach(n => { n.textContent = '0'; });
     if (runBtn) runBtn.classList.add('running');
+    if (scan) gsap.set(scan, { opacity: 0, top: 0 });
+  }, 0);
 
-    let t = 500;
-    stages.forEach((stage, i) => {
-      after(t, () => {
-        stages.forEach(s => s.classList.remove('active'));
-        stage.classList.add('active');
-      });
-      after(t + 850, () => {
-        stage.classList.remove('active');
-        stage.classList.add('done');
-      });
-      t += 1000;
-    });
-
-    // Reveal + fill score bars after all stages complete
-    after(t + 200, () => {
-      if (runBtn) runBtn.classList.remove('running');
-      scoresWrap.classList.add('show');
-      bars.forEach((b, i) => {
-        after(i * 220, () => { b.style.width = (b.dataset.score || 0) + '%'; });
-      });
-    });
-
-    // Hold the finished report, then loop
-    after(t + 4200, runCycle);
+  // Scan sweep down the stage list.
+  if (scan && stagesWrap) {
+    tl.fromTo(scan, { opacity: 0, top: 0 }, { opacity: 0.9, duration: 0.25 }, 0.1)
+      .to(scan, { top: () => Math.max(0, stagesWrap.offsetHeight - 38), duration: stages.length * 0.7, ease: 'none' }, 0.15)
+      .to(scan, { opacity: 0, duration: 0.3 }, '>-0.1');
   }
 
-  runCycle();
+  // Stages tick: spinner active, then checked done.
+  stages.forEach((stage, i) => {
+    const t = 0.3 + i * 0.7;
+    tl.add(() => { stages.forEach(s => s.classList.remove('active')); stage.classList.add('active'); }, t)
+      .add(() => { stage.classList.remove('active'); stage.classList.add('done'); }, t + 0.62);
+  });
+
+  // Reveal scores, then fill bars while the numbers count up.
+  const afterStages = 0.3 + stages.length * 0.7 + 0.2;
+  tl.add(() => { if (runBtn) runBtn.classList.remove('running'); scoresWrap.classList.add('show'); }, afterStages);
+  bars.forEach((bar, i) => {
+    const prox = { w: 0 };
+    tl.to(prox, {
+      w: targets[i], duration: 0.95, ease: 'power2.out',
+      onUpdate: () => { bar.style.width = prox.w + '%'; if (nums[i]) nums[i].textContent = Math.round(prox.w); },
+    }, afterStages + 0.1 + i * 0.18);
+  });
+
+  registerProjectTL(index, tl);
 }
 
 /* ─────────────────────────────────────────────────────────────

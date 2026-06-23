@@ -621,20 +621,168 @@ const PROJECTS = [
     name: 'Voiceflow Lead Capture &amp; Automation Agent',
     desc: 'Full conversational AI agent that captures structured lead data and triggers multi-step workflows via Make.com API integration. Built conditional logic for data validation, email capture, and automated follow-up processes.',
     tags: ['Voiceflow', 'Make.com'],
+    caseStudy: true,
   },
   {
     counter: '03 / 04',
     name: 'AI Customer Support Automation Agent',
     desc: 'AI customer support workflow agent handling user queries, delivering contextual responses, and triggering backend automation via Make.com. Implemented conditional refund workflow with data routing into Airtable for ticket processing.',
     tags: ['Voiceflow', 'Make.com', 'Airtable'],
+    caseStudy: true,
   },
   {
     counter: '04 / 04',
     name: 'AI Product Recommendation Agent <span style="font-size:0.8em;opacity:0.7">(Perfume Brand)</span>',
     desc: 'Intent-based product recommendation logic with category recognition (e.g. "club", "date night") to dynamically suggest relevant products. API-based email capture and automated data routing via Make.com; structured support intake routed into Airtable.',
     tags: ['Voiceflow', 'Make.com', 'Airtable'],
+    caseStudy: true,
   },
 ];
+
+/* ─────────────────────────────────────────────────────────────
+   CASE STUDIES — deep-dive content for each project, rendered into
+   the shared #cs-modal by renderCaseStudy(). Same index order as
+   PROJECTS. Auditly (0) keeps its original copy verbatim and is the
+   only one with live + code CTAs; the automation agents are demo
+   builds with no external links.
+───────────────────────────────────────────────────────── */
+const CASE_STUDIES = [
+  {
+    eyebrow: 'Case Study · Featured Project',
+    title: 'Auditly Pro',
+    lead: 'An LLM is great at <em>judgment</em> and unreliable at <em>facts</em>. So I split the audit engine in two: deterministic code measures everything that has a right answer, and the model only weighs in where opinion is the point. Here\'s how it\'s built — and why.',
+    flowHead: 'Architecture',
+    flowSub: 'One request, streamed end to end inside Vercel\'s 60s function window.',
+    flow: [
+      { label: 'URL in' },
+      { label: 'Validate + SSRF guard' },
+      { label: 'Cache check', sub: 'Redis' },
+      { label: 'Scrape', sub: 'Firecrawl' },
+      { label: 'Analyze', sub: 'SEO checks ∥ LLM judgment', cls: 'cs-node-split' },
+      { label: 'Store', sub: 'Redis · 24h TTL' },
+      { label: 'Shareable report', cls: 'cs-node-end' },
+    ],
+    decisionsHead: 'Engineering decisions',
+    decisions: [
+      { h: 'Hybrid scoring', p: 'SEO is graded by deterministic code — titles, headings, alt text, canonical tags, HTTPS — because those are facts with a correct answer. The LLM is reserved for conversion and UX, where judgment is the whole point. This keeps scores reproducible and kills hallucinated metrics.' },
+      { h: 'Streamed progress (NDJSON)', p: 'Audits take 20–40s, and a silent 40-second request feels broken (and risks Vercel\'s 60s timeout). The endpoint streams <code>scraping → analyzing → done</code> events as NDJSON, so the UI shows live progress instead of a frozen spinner.' },
+      { h: 'Redis caching', p: 'Reports are cached in Upstash Redis with a 24h TTL and served from a stable <code>/report/[id]</code> URL. Repeat views and shares skip a full re-scrape + re-analysis — saving both latency and API cost.' },
+      { h: 'Security hardening', p: 'The app fetches arbitrary user-supplied URLs — textbook SSRF territory — so requests pass an SSRF guard before any fetch. Add per-IP rate limiting to curb abuse and Zod schema validation on every input boundary, and the public endpoint stays safe to expose.' },
+      { h: 'Provider abstraction', p: 'The AI engine is swappable between Groq, Gemini, and Claude via a single environment variable. No vendor lock-in — I can route around cost, rate limits, or outages without touching application code.' },
+      { h: 'Print-to-PDF, not Chromium', p: 'PDF export uses a browser-native print stylesheet instead of bundling serverless Chromium. It drops a heavyweight, slow-cold-start dependency while still producing a clean, shareable document.' },
+    ],
+    tradeoffHead: 'Trade-offs &amp; scope',
+    tradeoff: 'Shipped as a demo MVP: single-page analysis only, and the LLM portion is as good as the model behind it. Multi-page crawling and historical report tracking are the obvious next steps — deliberately cut to ship something real and focused first.',
+    cta: {
+      live: 'https://auditly-pro.vercel.app/',
+      code: 'https://github.com/alenblekic/ai-website-audit-agent',
+    },
+  },
+  {
+    eyebrow: 'Case Study · Conversational AI + Automation',
+    title: 'Lead Capture &amp; Automation Agent',
+    lead: 'A landing-page visitor is only a lead if their details actually reach your team. This agent turns a chat into structured, validated lead data and hands it straight to an automation pipeline, so nothing gets retyped or lost.',
+    flowHead: 'How it works',
+    flowSub: 'A short conversation, validated inline, then routed downstream automatically.',
+    flow: [
+      { label: 'Voiceflow', sub: 'conversation' },
+      { label: 'Validate', sub: 'name · email' },
+      { label: 'Make.com', sub: 'scenario' },
+      { label: 'Email / CRM', cls: 'cs-node-end' },
+    ],
+    decisionsHead: 'Build decisions',
+    decisions: [
+      { h: 'Conversational capture', p: 'Instead of a static form, the agent asks for one field at a time in plain language. It keeps the visitor engaged and lets the bot confirm or re-ask when an answer looks off.' },
+      { h: 'Validate before routing', p: 'Name and email are checked inside Voiceflow before anything fires, so malformed input never reaches the automation and the downstream data stays clean.' },
+      { h: 'Make.com as the hand-off', p: 'A single Make.com scenario receives the captured fields over a webhook and fans them out to email and follow-up steps. The bot stays focused on the conversation; the scenario owns the plumbing.' },
+      { h: 'Graceful fallbacks', p: 'If a step has no clear answer, the agent re-prompts rather than dead-ending, so a half-finished chat still has a chance to convert.' },
+    ],
+    tradeoffHead: 'Scope',
+    tradeoff: 'Built as a focused demo on a no-code stack (Voiceflow plus Make.com) to ship a working flow quickly. It covers one capture-and-route path rather than a full multi-channel CRM integration.',
+  },
+  {
+    eyebrow: 'Case Study · Conversational AI + Automation',
+    title: 'Customer Support Automation Agent',
+    lead: 'Support volume is mostly repetitive: status checks, refunds, simple routing. This agent handles the common cases in chat and turns each request into a tracked ticket, so the team only sees what genuinely needs a human.',
+    flowHead: 'How it works',
+    flowSub: 'Understand the request, branch on intent, then route a structured ticket.',
+    flow: [
+      { label: 'Voiceflow', sub: 'intent' },
+      { label: 'Logic', sub: 'branch' },
+      { label: 'Make.com', sub: 'scenario' },
+      { label: 'Airtable', sub: 'ticket', cls: 'cs-node-end' },
+    ],
+    decisionsHead: 'Build decisions',
+    decisions: [
+      { h: 'Intent handling', p: 'The agent classifies what the user wants (refund, status, general query) up front and responds in context rather than with a generic menu.' },
+      { h: 'Conditional refund branch', p: 'A refund request follows its own path: confirm the order, acknowledge in chat, then trigger the refund workflow. Other intents skip that branch entirely.' },
+      { h: 'Structured ticket schema', p: 'Every routed request lands in Airtable with consistent fields (type, order, status), so tickets stay filterable and nothing is buried in a chat log.' },
+      { h: 'Status routing', p: 'Make.com sits between the bot and Airtable, writing the record and leaving room to add notifications or escalation later without touching the conversation design.' },
+    ],
+    tradeoffHead: 'Scope',
+    tradeoff: 'A demo build on Voiceflow, Make.com, and Airtable. It models one support flow end to end rather than a full help desk, and the refund step is wired as a workflow trigger rather than a real payment integration.',
+  },
+  {
+    eyebrow: 'Case Study · Conversational AI + Automation',
+    title: 'Product Recommendation Agent',
+    lead: 'Shoppers rarely know the product name; they know the occasion. This agent reads intent like "date night" or "club", suggests matching products, and captures interested buyers into a list for follow-up.',
+    flowHead: 'How it works',
+    flowSub: 'Read the intent, match a product, then capture and route the lead.',
+    flow: [
+      { label: 'Intent', sub: 'occasion' },
+      { label: 'Match', sub: 'category' },
+      { label: 'Make.com', sub: 'scenario' },
+      { label: 'Airtable', sub: 'subscriber', cls: 'cs-node-end' },
+    ],
+    decisionsHead: 'Build decisions',
+    decisions: [
+      { h: 'Intent to category mapping', p: 'Free-text answers like "something romantic" map to product categories, so the recommendation feels like a conversation with a shop assistant rather than a search box.' },
+      { h: 'Recommendation rules', p: 'Each category points to a small curated set of products with a short reason, which keeps suggestions confident and on-brand instead of overwhelming.' },
+      { h: 'Email capture and routing', p: 'When a shopper likes a pick, the agent offers a discount in exchange for an email and routes it through Make.com into Airtable for the marketing list.' },
+      { h: 'Repeat-prompt handling', p: 'The agent offers another recommendation and only moves to capture once the shopper is happy, so it never feels pushy.' },
+    ],
+    tradeoffHead: 'Scope',
+    tradeoff: 'A demo on Voiceflow, Make.com, and Airtable using a sample perfume catalogue. It shows the recommend-and-capture loop rather than a live store integration or real inventory.',
+  },
+];
+
+/* Build the inner HTML for the case-study modal from a CASE_STUDIES entry,
+   reusing the existing cs-* classes so no project needs bespoke markup. */
+function renderCaseStudy(cs) {
+  const flowHTML = cs.flow.map((n, i) => {
+    const sub  = n.sub ? `<small>${n.sub}</small>` : '';
+    const cls  = n.cls ? ` ${n.cls}` : '';
+    const node = `<span class="cs-node${cls}">${n.label}${sub}</span>`;
+    return i < cs.flow.length - 1 ? `${node}<span class="cs-arrow">→</span>` : node;
+  }).join('');
+
+  const decisionsHTML = cs.decisions
+    .map(d => `<div class="cs-decision"><h4>${d.h}</h4><p>${d.p}</p></div>`)
+    .join('');
+
+  let ctaHTML = '';
+  if (cs.cta) {
+    const liveSvg = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M7 17L17 7M17 7H8M17 7V16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    const ghSvg   = '<svg class="cs-gh-ico" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222 0 1.606-.014 2.898-.014 3.293 0 .322.216.694.825.576C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>';
+    ctaHTML = `<div class="cs-cta">
+        <a class="project-link" href="${cs.cta.live}" target="_blank" rel="noopener noreferrer"><span>View Live</span>${liveSvg}</a>
+        <a class="project-link cs-link-ghost" href="${cs.cta.code}" target="_blank" rel="noopener noreferrer">${ghSvg}<span>View Code</span></a>
+      </div>`;
+  }
+
+  return `
+    <p class="cs-eyebrow">${cs.eyebrow}</p>
+    <h2 class="cs-title" id="cs-title">${cs.title}</h2>
+    <p class="cs-lead">${cs.lead}</p>
+    <h3 class="cs-h3">${cs.flowHead}</h3>
+    <p class="cs-sub">${cs.flowSub}</p>
+    <div class="cs-flow">${flowHTML}</div>
+    <h3 class="cs-h3">${cs.decisionsHead}</h3>
+    <div class="cs-decisions">${decisionsHTML}</div>
+    <h3 class="cs-h3">${cs.tradeoffHead}</h3>
+    <p class="cs-tradeoff">${cs.tradeoff}</p>
+    ${ctaHTML}`;
+}
 
 /* Official brand icons for the tech tags (Simple Icons + Firecrawl's own
    flame). Rendered in currentColor so they match the coral tag text.
@@ -719,7 +867,7 @@ function initProjectsScroll() {
     );
   }
 
-  function applyLink(p) {
+  function applyLink(p, index) {
     if (linkEl) {
       if (p.link) {
         linkEl.href = p.link;
@@ -729,8 +877,12 @@ function initProjectsScroll() {
         linkEl.style.display = 'none';
       }
     }
-    if (csEl) csEl.style.display = p.caseStudy ? 'inline-flex' : 'none';
+    if (csEl) {
+      csEl.style.display = p.caseStudy ? 'inline-flex' : 'none';
+      csEl.dataset.index = index;
+    }
   }
+  applyLink(PROJECTS[0], 0);
 
   function updateInfo(index) {
     if (index === activeIndex) return;
@@ -744,7 +896,7 @@ function initProjectsScroll() {
         nameEl.innerHTML      = p.name;
         descEl.textContent    = p.desc;
         tagsEl.innerHTML      = p.tags.map(tagHTML).join('');
-        applyLink(p);
+        applyLink(p, index);
         updateNodes(index);
         gsap.to(infoEl, { opacity: 1, y: 0, duration: 0.4, ease: 'power3.out' });
       }
@@ -794,7 +946,7 @@ function initProjectsMobile() {
         inner += `<a class="project-link" href="${p.link}" target="_blank" rel="noopener noreferrer"><span>View Live</span>${liveSvg}</a>`;
       }
       if (p.caseStudy) {
-        inner += `<button class="project-casestudy pm-casestudy" type="button" aria-haspopup="dialog" aria-controls="cs-modal"><span>Case Study</span>${csSvg}</button>`;
+        inner += `<button class="project-casestudy pm-casestudy" type="button" data-index="${i}" aria-haspopup="dialog" aria-controls="cs-modal"><span>Case Study</span>${csSvg}</button>`;
       }
       actions = `<div class="project-actions">${inner}</div>`;
     }
@@ -829,12 +981,26 @@ function initCaseStudyModal() {
   const scrollEl = modal.querySelector('.cs-scroll');
   let lastFocus = null;
 
-  function open() {
+  function open(index) {
+    const cs = CASE_STUDIES[index] || CASE_STUDIES[0];
+    if (scrollEl && cs) {
+      scrollEl.innerHTML = renderCaseStudy(cs);
+      modal.setAttribute('aria-labelledby', 'cs-title');
+    }
     lastFocus = document.activeElement;
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
     document.body.classList.add('cs-open');
     if (scrollEl) scrollEl.scrollTop = 0;
+
+    // Staggered reveal of the freshly rendered sections.
+    if (scrollEl && !PREFERS_REDUCED_MOTION) {
+      gsap.fromTo(scrollEl.children,
+        { opacity: 0, y: 14 },
+        { opacity: 1, y: 0, duration: 0.34, ease: 'power3.out', stagger: 0.05, overwrite: true }
+      );
+    }
+
     const closeBtn = modal.querySelector('.cs-close');
     if (closeBtn) closeBtn.focus();
   }
@@ -846,7 +1012,9 @@ function initCaseStudyModal() {
     if (lastFocus) lastFocus.focus();
   }
 
-  openBtns.forEach(btn => btn.addEventListener('click', open));
+  openBtns.forEach(btn => btn.addEventListener('click', () => {
+    open(parseInt(btn.dataset.index, 10) || 0);
+  }));
   modal.querySelectorAll('[data-cs-close]').forEach(el => el.addEventListener('click', close));
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && modal.classList.contains('open')) close();

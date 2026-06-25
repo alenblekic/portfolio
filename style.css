@@ -2356,69 +2356,19 @@ body.cs-open { overflow: hidden; }
   font-size: 0.8rem;
 }
 
-/* ── Craft ribbon (diagonal scrolling marquee) ────────────── */
-/* wrapper clips the rotated overhang so it can never add a horizontal scrollbar */
+/* ── Word marquee (clean scrolling strip) ─────────────────── */
 .ribbon-wrap {
   position: relative;
+  z-index: 1; /* sit above the contact starfield (z-index:0) */
   width: 100%;
   overflow: hidden;
-  /* enough vertical room that the tilt isn't clipped across the visible width */
-  padding: clamp(44px, 5vw, 64px) 0;
-  background: var(--bg);
+  padding: clamp(28px, 4vw, 48px) 0;
+  background: transparent;
+  /* fade the words into the background at both edges */
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
 }
-.ribbon-band {
-  position: relative;
-  /* overhang both edges so the tilt never shows a cut corner */
-  width: 118vw;
-  margin-left: -9vw;
-  padding: 18px 0;
-  /* glossy stack: top sheen + bottom shade over the coral base */
-  background:
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.05) 18%, rgba(255, 255, 255, 0) 52%),
-    linear-gradient(to top, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0) 42%),
-    linear-gradient(100deg, var(--red) 0%, var(--red-dark) 100%);
-  transform: rotate(-3.5deg);
-  box-shadow:
-    0 18px 44px rgba(0, 0, 0, 0.5),
-    inset 0 2px 0 rgba(255, 255, 255, 0.45),
-    inset 0 -2px 6px rgba(0, 0, 0, 0.28);
-  overflow: hidden;
-  z-index: 2;
-}
-/* soft specular streak gliding across the glass */
-.ribbon-shine {
-  position: absolute;
-  top: -25%;
-  left: -35%;
-  width: 26%;
-  height: 150%;
-  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.5), transparent);
-  filter: blur(6px);
-  transform: skewX(-12deg);
-  pointer-events: none;
-  z-index: 2;
-  animation: ribbon-shine-sweep 7s ease-in-out infinite;
-}
-@keyframes ribbon-shine-sweep {
-  0%        { left: -35%; }
-  55%, 100% { left: 125%; }
-}
-/* mask the cut edges so the band reads as a clean strip */
-.ribbon-band::before,
-.ribbon-band::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 12vw;
-  z-index: 3;
-  pointer-events: none;
-}
-.ribbon-band::before { left: 0;  background: linear-gradient(90deg, var(--red), transparent); }
-.ribbon-band::after  { right: 0; background: linear-gradient(270deg, var(--red-dark), transparent); }
 .ribbon-track {
-  position: relative;
-  z-index: 1;
   display: inline-flex;
   align-items: center;
   white-space: nowrap;
@@ -2431,14 +2381,17 @@ body.cs-open { overflow: hidden; }
   font-size: clamp(1.3rem, 2.4vw, 2rem);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #1f120b;
-  /* subtle emboss so the lettering sits in the glass */
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.22), 0 -1px 1px rgba(0, 0, 0, 0.18);
+  color: var(--white);
   padding: 0 4px;
+}
+/* outlined "ghost" variant for rhythm */
+.ribbon-word.ghost {
+  color: transparent;
+  -webkit-text-stroke: 1px var(--grey);
 }
 .ribbon-star {
   font-size: clamp(0.9rem, 1.6vw, 1.3rem);
-  color: rgba(26, 15, 10, 0.55);
+  color: var(--red);
   margin: 0 clamp(20px, 3vw, 44px);
   transform: translateY(-2px);
 }
@@ -2451,6 +2404,7 @@ body.cs-open { overflow: hidden; }
 .contact-section {
   background: var(--bg);
   border-top: 1px solid var(--border);
+  padding-top: 0; /* marquee fills this band; words framed between border-top and .sh-line */
   overflow: hidden;
   position: relative;
 }

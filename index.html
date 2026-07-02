@@ -53,10 +53,16 @@
         <li><a href="#projects" class="nav-link">Projects</a></li>
         <li><a href="#experience" class="nav-link">Experience</a></li>
       </ul>
-      <a href="#contact" class="nav-cta">Contact Me</a>
-      <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
-        <span></span><span></span><span></span>
-      </button>
+      <div class="nav-actions">
+        <button class="nv-open-btn" id="nv-open" type="button" aria-haspopup="dialog" aria-controls="nebula-view">
+          <svg class="nv-open-ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9zM19 15l.95 3.05L23 19l-3.05.95L19 23l-.95-3.05L15 19l3.05-.95z"/></svg>
+          <span class="nv-open-label">Nebula View</span>
+        </button>
+        <a href="#contact" class="nav-cta">Contact Me</a>
+        <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
     </div>
   </nav>
 
@@ -750,6 +756,85 @@
 
       <!-- Content is rendered by renderCaseStudy() from CASE_STUDIES in main.js. -->
       <div class="cs-scroll"></div>
+    </div>
+  </div>
+
+  <!-- Nebula View — immersive fullscreen scroll overlay (initNebulaView in main.js) -->
+  <div id="nebula-view" class="nv-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Nebula View, immersive portfolio journey">
+    <canvas class="nv-canvas" aria-hidden="true"></canvas>
+
+    <div class="nv-loader" aria-hidden="true">
+      <span class="nv-loader-mark"><span class="logo-a">A</span><span class="logo-slash">/</span><span class="logo-b">B</span></span>
+      <div class="nv-loader-track"><div class="nv-loader-fill"></div></div>
+      <span class="nv-loader-pct">0%</span>
+    </div>
+
+    <button class="nv-close" type="button" aria-label="Exit Nebula View">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+
+    <div class="nv-scroll" tabindex="0" aria-label="Scroll through the nebula journey">
+
+      <section class="nv-beat nv-beat-hero">
+        <div class="nv-beat-inner">
+          <h2 class="nv-name">ALEN</h2>
+          <p class="nv-sub">AI Developer · IT &amp; Cloud</p>
+          <p class="nv-loc">Helsingborg, Sweden</p>
+          <div class="nv-scroll-hint" aria-hidden="true"><span></span></div>
+        </div>
+      </section>
+
+      <section class="nv-beat nv-beat-about">
+        <div class="nv-beat-inner">
+          <p class="nv-bio">IT Operations Technician building <strong>AI agents and automations</strong> that solve practical problems.</p>
+          <div class="nv-stats">
+            <div class="nv-stat"><span class="nv-stat-num">100s</span><span class="nv-stat-label">Hours Saved via Automation</span></div>
+            <div class="nv-stat"><span class="nv-stat-num">10+</span><span class="nv-stat-label">Tools in Toolkit</span></div>
+            <div class="nv-stat"><span class="nv-stat-num">3</span><span class="nv-stat-label">Languages Spoken</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="nv-beat nv-beat-projects">
+        <div class="nv-beat-inner">
+          <h3 class="nv-beat-title">AI Projects</h3>
+          <div class="nv-cards"><!-- rendered from PROJECTS[] by initNebulaView --></div>
+        </div>
+      </section>
+
+      <section class="nv-beat nv-beat-toolkit">
+        <div class="nv-beat-inner">
+          <h3 class="nv-beat-title">Toolkit</h3>
+          <div class="nv-constellation"><!-- cloned from .toolkit-bubbles by initNebulaView --></div>
+        </div>
+      </section>
+
+      <section class="nv-beat nv-beat-certs">
+        <div class="nv-beat-inner">
+          <h3 class="nv-beat-title">Certifications</h3>
+          <div class="nv-certs">
+            <div class="nv-cert" style="--accent:#D97559"><h4>Claude Code</h4><p>Anthropic · 2026</p></div>
+            <div class="nv-cert" style="--accent:#D97559"><h4>AI Fluency: Frameworks &amp; Foundations</h4><p>Anthropic · 2026</p></div>
+            <div class="nv-cert" style="--accent:#4285F4"><h4>Gemini Certification (K12)</h4><p>Google for Education · 2026</p></div>
+            <div class="nv-cert" style="--accent:#3B82F6"><h4>Azure AI Fundamentals</h4><p>Microsoft · In progress</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="nv-beat nv-beat-contact">
+        <div class="nv-beat-inner">
+          <h3 class="nv-contact-heading">Let's Build Something.</h3>
+          <div class="nv-cta-row">
+            <button class="nv-cta" type="button" onclick="copyEmail(this)">
+              <span class="btn-label">Email Me</span>
+              <span class="btn-copied" aria-hidden="true">Copied!</span>
+            </button>
+            <a class="nv-cta nv-cta-ghost" href="https://github.com/alenblekic" target="_blank" rel="noopener noreferrer">GitHub</a>
+          </div>
+          <p class="nv-exit-hint">Press <kbd>Esc</kbd> to return to Earth</p>
+        </div>
+      </section>
+
     </div>
   </div>
 

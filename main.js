@@ -42,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initContactImmersive();
   initSwedenRipple();
   initCertTilt();
+  initNebulaView();
 });
 
 /* ─────────────────────────────────────────────────────────────
@@ -2431,4 +2432,430 @@ function initContactImmersive() {
     });
     btn.addEventListener('mouseleave', () => { bx(0); by(0); });
   }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   NEBULA VIEW — immersive fullscreen scroll overlay.
+   Own scroll container (no ScrollTrigger: the overlay is hidden at
+   init and global refreshes would fight its measurements). Reveals
+   use an IntersectionObserver rooted on the container; parallax and
+   the project fly-ins are driven by scrollTop inside the rAF loop
+   that already paints the canvas.
+───────────────────────────────────────────────────────── */
+function initNebulaView() {
+  const overlay = document.getElementById('nebula-view');
+  const openBtn = document.getElementById('nv-open');
+  if (!overlay || !openBtn) return;
+
+  const canvas = overlay.querySelector('.nv-canvas');
+  const ctx = canvas.getContext('2d');
+  const scrollEl = overlay.querySelector('.nv-scroll');
+  const loader = overlay.querySelector('.nv-loader');
+  const closeBtn = overlay.querySelector('.nv-close');
+  const hasGsap = typeof gsap !== 'undefined';
+  const hoverFine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const isSmall = window.matchMedia('(max-width: 680px)').matches;
+
+  let isOpen = false;
+  let rafId = null;
+  let seenOnce = false;
+  let lastFocus = null;
+  let scrollFrac = 0;
+  let cardSetters = [];
+  let cardBase = 0; // .nv-beat-projects offsetTop, cached on open/resize
+  const mouse = { tx: 0, ty: 0, x: 0, y: 0 };
+
+  /* ── Canvas: pre-rendered cloud sprites + layered star field ── */
+  function makeCloudSprite(r, g, b) {
+    const size = 384;
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const cc = c.getContext('2d');
+    const grad = cc.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    grad.addColorStop(0, `rgba(${r},${g},${b},1)`);
+    grad.addColorStop(0.4, `rgba(${r},${g},${b},0.35)`);
+    grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+    cc.fillStyle = grad;
+    cc.fillRect(0, 0, size, size);
+    return c;
+  }
+  const sprites = [
+    makeCloudSprite(217, 119, 87),  // coral
+    makeCloudSprite(184, 92, 62),   // ember
+    makeCloudSprite(90, 30, 10),    // deep rust
+  ];
+  const CLOUDS = (isSmall ? 3 : 6);
+  const clouds = Array.from({ length: CLOUDS }, (_, i) => ({
+    sprite: sprites[i % 3],
+    fx: Math.random(),
+    fy: Math.random() * 1.6,
+    scale: 1.5 + Math.random() * 2,
+    speed: 0.03 + Math.random() * 0.05,
+    phase: Math.random() * Math.PI * 2,
+    depth: 0.15 + Math.random() * 0.35,
+    alpha: 0.05 + Math.random() * 0.07,
+  }));
+  const STAR_LAYERS = [0.05, 0.12, 0.25];
+  const STARS = isSmall ? 120 : 300;
+  const stars = Array.from({ length: STARS }, () => ({
+    fx: Math.random(),
+    fy: Math.random(),
+    r: 0.4 + Math.random() * 1.1,
+    depth: STAR_LAYERS[Math.floor(Math.random() * 3)],
+    ts: 0.5 + Math.random() * 1.6,
+    to: Math.random() * Math.PI * 2,
+    coral: Math.random() < 0.2,
+  }));
+  let meteor = null;
+  let nextMeteor = 0;
+
+  function sizeCanvas() {
+    const dpr = Math.min(window.devicePixelRatio || 1, isSmall ? 1.5 : 2);
+    canvas.width = overlay.clientWidth * dpr;
+    canvas.height = overlay.clientHeight * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function drawFrame(t) {
+    const W = overlay.clientWidth, H = overlay.clientHeight;
+    mouse.x += (mouse.tx - mouse.x) * 0.06;
+    mouse.y += (mouse.ty - mouse.y) * 0.06;
+    ctx.clearRect(0, 0, W, H);
+
+    for (const cl of clouds) {
+      const size = cl.scale * Math.min(W, H) * 0.8;
+      const x = cl.fx * W - size / 2 + Math.sin(t * cl.speed + cl.phase) * 30 + mouse.x * cl.depth * 40;
+      const y = cl.fy * H - size / 2 - scrollFrac * H * cl.depth * 1.5 + mouse.y * cl.depth * 30;
+      ctx.globalAlpha = cl.alpha;
+      ctx.drawImage(cl.sprite, x, y, size, size);
+    }
+
+    for (const s of stars) {
+      const tw = 0.5 + 0.5 * Math.sin(t * s.ts + s.to);
+      const x = (((s.fx * W + mouse.x * s.depth * 60) % W) + W) % W;
+      const y = (((s.fy * H - scrollFrac * H * s.depth * 3 + mouse.y * s.depth * 40) % H) + H) % H;
+      ctx.globalAlpha = 0.25 + tw * 0.6;
+      ctx.fillStyle = s.coral ? '#E8A188' : '#FFFFFF';
+      ctx.beginPath();
+      ctx.arc(x, y, s.r, 0, Math.PI * 2);
+      ctx.fill();
+      if (s.r > 1.3 && tw > 0.92) { // occasional glint cross on the brightest
+        ctx.globalAlpha = (tw - 0.92) * 6;
+        ctx.fillRect(x - s.r * 4, y - 0.4, s.r * 8, 0.8);
+        ctx.fillRect(x - 0.4, y - s.r * 4, 0.8, s.r * 8);
+      }
+    }
+
+    if (!PREFERS_REDUCED_MOTION) {
+      if (!meteor && t > nextMeteor) {
+        meteor = {
+          x: Math.random() * W * 0.7 + W * 0.15,
+          y: Math.random() * H * 0.3,
+          vx: 320 + Math.random() * 200,
+          vy: 160 + Math.random() * 120,
+          born: t,
+        };
+      }
+      if (meteor) {
+        const age = t - meteor.born;
+        if (age > 0.7) {
+          meteor = null;
+          nextMeteor = t + 4 + Math.random() * 5;
+        } else {
+          const mx = meteor.x + meteor.vx * age;
+          const my = meteor.y + meteor.vy * age;
+          const fade = 1 - age / 0.7;
+          const grad = ctx.createLinearGradient(mx, my, mx - meteor.vx * 0.18, my - meteor.vy * 0.18);
+          grad.addColorStop(0, `rgba(255,220,200,${0.9 * fade})`);
+          grad.addColorStop(1, 'rgba(255,220,200,0)');
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = grad;
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.moveTo(mx, my);
+          ctx.lineTo(mx - meteor.vx * 0.18, my - meteor.vy * 0.18);
+          ctx.stroke();
+        }
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function loop(now) {
+    const t = now / 1000;
+    drawFrame(t);
+    /* Project cards fly in from depth, scrubbed by container scroll */
+    if (cardSetters.length) {
+      const vh = overlay.clientHeight;
+      const top = scrollEl.scrollTop;
+      cardSetters.forEach((s, i) => {
+        const p = Math.min(1, Math.max(0, (top + vh - (cardBase + vh * 0.35 + i * vh * 0.1)) / (vh * 0.55)));
+        s.y(120 * (1 - p));
+        s.scale(0.82 + 0.18 * p);
+        s.op(p);
+      });
+    }
+    rafId = requestAnimationFrame(loop);
+  }
+
+  /* ── Build dynamic beats once (projects from PROJECTS[], chips cloned) ── */
+  function buildBeats() {
+    if (overlay.dataset.built) return;
+    overlay.dataset.built = '1';
+
+    const cardsWrap = overlay.querySelector('.nv-cards');
+    if (cardsWrap && typeof PROJECTS !== 'undefined') {
+      PROJECTS.forEach(p => {
+        const card = document.createElement('article');
+        card.className = 'nv-card';
+        applyAccent(card, p);
+        const tags = (typeof tagHTML === 'function')
+          ? p.tags.map(tagHTML).join('')
+          : p.tags.map(tg => `<span class="tag">${tg}</span>`).join('');
+        card.innerHTML =
+          `<span class="nv-card-counter">${p.counter}</span>` +
+          `<h4 class="nv-card-name">${p.name}</h4>` +
+          `<p class="nv-card-desc">${p.desc}</p>` +
+          `<div class="nv-card-tags">${tags}</div>`;
+        cardsWrap.appendChild(card);
+      });
+    }
+
+    const constellation = overlay.querySelector('.nv-constellation');
+    if (constellation) {
+      document.querySelectorAll('.toolkit-bubbles .skill-bubble').forEach(b => {
+        const chip = document.createElement('span');
+        chip.className = 'nv-chip';
+        chip.style.setProperty('--fx', (Math.random() * 12 - 6).toFixed(1) + 'px');
+        chip.style.setProperty('--fy', (-4 - Math.random() * 8).toFixed(1) + 'px');
+        chip.style.setProperty('--fdur', (4.5 + Math.random() * 4).toFixed(1) + 's');
+        chip.style.setProperty('--fdelay', (-Math.random() * 4).toFixed(1) + 's');
+        chip.appendChild(b.cloneNode(true));
+        constellation.appendChild(chip);
+      });
+    }
+
+    /* Wrap the big name's letters for the hover scatter */
+    const name = overlay.querySelector('.nv-name');
+    if (name) {
+      name.innerHTML = name.textContent.split('')
+        .map(ch => `<span class="nv-letter">${ch}</span>`).join('');
+    }
+
+    setupHover();
+    setupReveals();
+  }
+
+  /* ── Reveals: beats rise in as they enter the container viewport ── */
+  function setupReveals() {
+    if (PREFERS_REDUCED_MOTION) {
+      overlay.querySelectorAll('.nv-beat').forEach(b => b.classList.add('nv-in'));
+      return;
+    }
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(en => en.target.classList.toggle('nv-in', en.isIntersecting));
+    }, { root: scrollEl, threshold: 0.35 });
+    overlay.querySelectorAll('.nv-beat').forEach(b => io.observe(b));
+  }
+
+  /* ── Hover micro-interactions (pointer devices only) ── */
+  function makeMagnetic(el, strength = 0.3) {
+    if (!hasGsap || !hoverFine || PREFERS_REDUCED_MOTION) return;
+    const qx = gsap.quickTo(el, 'x', { duration: 0.4, ease: 'power3' });
+    const qy = gsap.quickTo(el, 'y', { duration: 0.4, ease: 'power3' });
+    el.addEventListener('mousemove', e => {
+      const r = el.getBoundingClientRect();
+      qx((e.clientX - (r.left + r.width / 2)) * strength);
+      qy((e.clientY - (r.top + r.height / 2)) * strength);
+    });
+    el.addEventListener('mouseleave', () => { qx(0); qy(0); });
+  }
+
+  function makeTilt(el, max = 8) {
+    if (!hasGsap || !hoverFine || PREFERS_REDUCED_MOTION) return;
+    const rx = gsap.quickTo(el, 'rotationX', { duration: 0.5, ease: 'power2.out' });
+    const ry = gsap.quickTo(el, 'rotationY', { duration: 0.5, ease: 'power2.out' });
+    el.addEventListener('mousemove', e => {
+      const r = el.getBoundingClientRect();
+      ry(((e.clientX - r.left) / r.width - 0.5) * max * 2);
+      rx(-((e.clientY - r.top) / r.height - 0.5) * max * 2);
+    });
+    el.addEventListener('mouseleave', () => { rx(0); ry(0); });
+  }
+
+  function setupHover() {
+    if (!hasGsap || !hoverFine || PREFERS_REDUCED_MOTION) return;
+    overlay.querySelectorAll('.nv-card, .nv-cert').forEach(el => makeTilt(el));
+    overlay.querySelectorAll('.nv-cta, .nv-close').forEach(el => makeMagnetic(el));
+
+    /* ALEN letters scatter away from the cursor, spring back on leave */
+    const name = overlay.querySelector('.nv-name');
+    const letters = [...overlay.querySelectorAll('.nv-letter')];
+    if (name && letters.length) {
+      const setters = letters.map(l => ({
+        x: gsap.quickTo(l, 'x', { duration: 0.4, ease: 'power3' }),
+        y: gsap.quickTo(l, 'y', { duration: 0.4, ease: 'power3' }),
+        el: l,
+      }));
+      name.addEventListener('mousemove', e => {
+        setters.forEach(s => {
+          const r = s.el.getBoundingClientRect();
+          const dx = r.left + r.width / 2 - e.clientX;
+          const dy = r.top + r.height / 2 - e.clientY;
+          const d = Math.hypot(dx, dy);
+          if (d < 120 && d > 0) {
+            const f = ((120 - d) / 120) * 18;
+            s.x((dx / d) * f);
+            s.y((dy / d) * f);
+            s.el.classList.add('flare');
+          } else {
+            s.x(0); s.y(0);
+            s.el.classList.remove('flare');
+          }
+        });
+      });
+      name.addEventListener('mouseleave', () => {
+        setters.forEach(s => { s.x(0); s.y(0); s.el.classList.remove('flare'); });
+      });
+    }
+  }
+
+  /* ── Loading bar → reveal ── */
+  function runLoader(onDone) {
+    if (!hasGsap || PREFERS_REDUCED_MOTION) {
+      loader.style.display = 'none';
+      onDone();
+      return;
+    }
+    loader.style.display = '';
+    loader.style.opacity = '1';
+    loader.style.pointerEvents = 'auto';
+    const fill = loader.querySelector('.nv-loader-fill');
+    const pct = loader.querySelector('.nv-loader-pct');
+    const state = { v: 0 };
+    gsap.set(fill, { scaleX: 0 });
+    const dur = seenOnce ? 0.7 : 1.4;
+    gsap.to(state, {
+      v: 100,
+      duration: dur,
+      ease: 'steps(14)',
+      onUpdate: () => {
+        gsap.set(fill, { scaleX: state.v / 100 });
+        if (pct) pct.textContent = Math.round(state.v) + '%';
+      },
+      onComplete: () => {
+        gsap.to(loader, {
+          opacity: 0,
+          duration: 0.45,
+          ease: 'power2.inOut',
+          onComplete: () => {
+            loader.style.pointerEvents = 'none';
+            loader.style.display = 'none';
+          },
+        });
+        onDone();
+      },
+    });
+    gsap.to(fill, { opacity: 0.75, duration: 0.07, repeat: 15, yoyo: true, ease: 'none' });
+    seenOnce = true;
+  }
+
+  function reveal() {
+    scrollEl.scrollTop = 0;
+    scrollFrac = 0;
+    const hero = overlay.querySelector('.nv-beat-hero');
+    if (hero) hero.classList.add('nv-in');
+    if (hasGsap && !PREFERS_REDUCED_MOTION) {
+      gsap.fromTo(hero.querySelectorAll('.nv-beat-inner > *'),
+        { opacity: 0, y: 36 },
+        { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out', stagger: 0.09, clearProps: 'opacity,transform' }
+      );
+    }
+  }
+
+  /* ── Measurement + listeners bound only while open ── */
+  function measure() {
+    const projBeat = overlay.querySelector('.nv-beat-projects');
+    cardBase = projBeat ? projBeat.offsetTop : 0;
+  }
+  function onScroll() {
+    const max = scrollEl.scrollHeight - scrollEl.clientHeight;
+    scrollFrac = max > 0 ? scrollEl.scrollTop / max : 0;
+  }
+  function onMouse(e) {
+    mouse.tx = (e.clientX / overlay.clientWidth) * 2 - 1;
+    mouse.ty = (e.clientY / overlay.clientHeight) * 2 - 1;
+  }
+  function onResize() {
+    sizeCanvas();
+    measure();
+  }
+  function onKeydown(e) {
+    if (!isOpen) return;
+    if (e.key === 'Escape') { close(); return; }
+    if (e.key === 'Tab') { // minimal focus trap: the overlay covers the whole app
+      const focusables = [...overlay.querySelectorAll('button, a[href], [tabindex="0"]')]
+        .filter(el => el.offsetParent !== null || el === scrollEl);
+      if (!focusables.length) return;
+      const first = focusables[0], last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) { last.focus(); e.preventDefault(); }
+      else if (!e.shiftKey && document.activeElement === last) { first.focus(); e.preventDefault(); }
+    }
+  }
+
+  function open() {
+    if (isOpen) return;
+    isOpen = true;
+    buildBeats();
+    lastFocus = document.activeElement;
+    overlay.classList.add('open');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('nv-open');
+    sizeCanvas();
+    measure();
+
+    /* Prime the project cards at their flown-out state before the loop drives them */
+    cardSetters = [];
+    if (hasGsap && !PREFERS_REDUCED_MOTION) {
+      overlay.querySelectorAll('.nv-card').forEach(card => {
+        gsap.set(card, { y: 120, scale: 0.82, opacity: 0 });
+        cardSetters.push({
+          y: gsap.quickTo(card, 'y', { duration: 0.35, ease: 'power2.out' }),
+          scale: gsap.quickTo(card, 'scale', { duration: 0.35, ease: 'power2.out' }),
+          op: gsap.quickTo(card, 'opacity', { duration: 0.35, ease: 'power2.out' }),
+        });
+      });
+    }
+
+    scrollEl.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onResize);
+    if (hoverFine) overlay.addEventListener('mousemove', onMouse);
+    document.addEventListener('keydown', onKeydown);
+
+    if (PREFERS_REDUCED_MOTION) {
+      drawFrame(0); // one static paint, no loop
+    } else if (rafId === null) {
+      rafId = requestAnimationFrame(loop);
+    }
+    runLoader(reveal);
+    if (closeBtn) closeBtn.focus();
+  }
+
+  function close() {
+    if (!isOpen) return;
+    isOpen = false;
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('nv-open');
+    if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+    scrollEl.removeEventListener('scroll', onScroll);
+    window.removeEventListener('resize', onResize);
+    overlay.removeEventListener('mousemove', onMouse);
+    document.removeEventListener('keydown', onKeydown);
+    if (lastFocus) lastFocus.focus();
+  }
+
+  openBtn.addEventListener('click', open);
+  if (closeBtn) closeBtn.addEventListener('click', close);
+  makeMagnetic(openBtn, 0.25);
 }

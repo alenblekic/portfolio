@@ -2725,7 +2725,7 @@ body.nv-open { overflow: hidden; }
   position: fixed;
   inset: 0;
   z-index: 1100;
-  background: #050505;
+  background: #030309;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -2744,6 +2744,15 @@ body.nv-open { overflow: hidden; }
   height: 100%;
   z-index: 0;
 }
+/* Static edge vignette over the canvas: darker corners make the center
+   stars and cards read brighter without any per-frame cost */
+.nv-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(2,2,10,0.6) 100%);
+}
 
 /* ── Loader ── */
 .nv-loader {
@@ -2755,7 +2764,7 @@ body.nv-open { overflow: hidden; }
   align-items: center;
   justify-content: center;
   gap: 22px;
-  background: #050505;
+  background: #030309;
 }
 .nv-loader-mark {
   display: flex;
@@ -2848,8 +2857,33 @@ body.nv-open { overflow: hidden; }
   text-align: center;
 }
 .nv-item-card {
+  position: relative;
   width: min(640px, 88vw);
   transform-style: preserve-3d;
+}
+/* Orbital ring behind every card: a tilted circle with a small coral moon
+   (the gradient dot) riding it as the ring slowly spins in its own plane */
+.nv-item-card::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 120%;
+  aspect-ratio: 1 / 1;
+  z-index: -1;
+  border: 1px solid rgba(217,119,87,0.22);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 4px,
+    rgba(232,161,136,0.95) 0 2.5px,
+    rgba(232,161,136,0.25) 4px,
+    transparent 6px);
+  transform: translate(-50%, -50%) rotateX(72deg) translateZ(-60px);
+  animation: nv-orbit-spin 14s linear infinite;
+  pointer-events: none;
+}
+@keyframes nv-orbit-spin {
+  from { transform: translate(-50%, -50%) rotateX(72deg) translateZ(-60px) rotate(0turn); }
+  to   { transform: translate(-50%, -50%) rotateX(72deg) translateZ(-60px) rotate(1turn); }
 }
 .nv-item-name .nv-item-card { width: min(940px, 94vw); }
 .nv-item-toolkit .nv-item-card,
@@ -2931,16 +2965,17 @@ body.nv-open { overflow: hidden; }
   flex-direction: column;
   gap: 6px;
   padding: 26px 34px;
-  background: rgba(20,20,20,0.55);
-  border: 1px solid var(--border);
+  background: rgba(10,13,26,0.6);
+  border: 1px solid rgba(160,190,255,0.14);
   border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(200,220,255,0.07);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 .nv-stat:hover {
   border-color: var(--border-red);
-  box-shadow: 0 0 24px rgba(217,119,87,0.18);
+  box-shadow: inset 0 1px 0 rgba(200,220,255,0.07), 0 0 24px rgba(217,119,87,0.18);
   transform: translateY(-4px);
 }
 .nv-stat-num {
@@ -2970,9 +3005,13 @@ body.nv-open { overflow: hidden; }
   --accent: var(--red);
   text-align: left;
   padding: 26px 28px;
-  background: rgba(18,18,18,0.72);
-  border: 1px solid var(--border);
+  background-color: rgba(10,13,26,0.66);
+  /* Faint accent atmosphere in the top-right corner, per project */
+  background-image: radial-gradient(circle at 100% 0,
+    color-mix(in srgb, var(--accent) 10%, transparent), transparent 55%);
+  border: 1px solid rgba(160,190,255,0.14);
   border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgba(200,220,255,0.07);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   will-change: transform, opacity;
@@ -2980,7 +3019,7 @@ body.nv-open { overflow: hidden; }
 }
 .nv-card:hover {
   border-color: color-mix(in srgb, var(--accent) 45%, transparent);
-  box-shadow: 0 18px 50px rgba(0,0,0,0.5), 0 0 30px color-mix(in srgb, var(--accent) 18%, transparent);
+  box-shadow: inset 0 1px 0 rgba(200,220,255,0.07), 0 18px 50px rgba(0,0,0,0.5), 0 0 30px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 .nv-card-counter {
   font-family: var(--font-display);
@@ -3066,16 +3105,17 @@ body.nv-open { overflow: hidden; }
   --accent: var(--red);
   padding: 24px 22px;
   text-align: left;
-  background: rgba(18,18,18,0.72);
-  border: 1px solid var(--border);
+  background: rgba(10,13,26,0.66);
+  border: 1px solid rgba(160,190,255,0.14);
   border-top: 2px solid var(--accent);
   border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(200,220,255,0.07);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   transition: box-shadow var(--transition), border-color var(--transition);
 }
 .nv-cert:hover {
-  box-shadow: 0 14px 40px rgba(0,0,0,0.5), 0 0 24px color-mix(in srgb, var(--accent) 20%, transparent);
+  box-shadow: inset 0 1px 0 rgba(200,220,255,0.07), 0 14px 40px rgba(0,0,0,0.5), 0 0 24px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 .nv-cert h4 {
   font-family: var(--font-display);
@@ -3160,9 +3200,9 @@ body.nv-open { overflow: hidden; }
   font-family: var(--font-display);
   font-size: 0.75rem;
   padding: 2px 8px;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(160,190,255,0.18);
   border-radius: 4px;
-  background: rgba(255,255,255,0.04);
+  background: rgba(160,190,255,0.06);
   color: var(--white);
 }
 
@@ -3196,9 +3236,12 @@ body.nv-open { overflow: hidden; }
   pointer-events: auto;
 }
 .nv-overlay.nv-static .nv-track { display: none; }
+/* Orbit rings assume the 3D spiral stage; hide them in the flat column */
+.nv-overlay.nv-static .nv-item-card::before { display: none; }
 
 /* ── Reduced motion: nothing loops ── */
 @media (prefers-reduced-motion: reduce) {
   .nv-scroll-hint span, .nv-chip { animation: none; }
+  .nv-item-card::before { animation: none; }
   .nv-loader { display: none; }
 }

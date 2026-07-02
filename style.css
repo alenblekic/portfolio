@@ -2815,7 +2815,10 @@ body.nv-open { overflow: hidden; }
   transform: rotate(90deg);
 }
 
-/* ── Scroll container + beats ── */
+/* ── Scroll container + 3D spiral stage ──
+   .nv-scroll owns native scroll; .nv-stage is a sticky full-viewport 3D
+   viewport whose .nv-items are transformed each frame from scrollTop
+   (spiral tunnel). .nv-track is a spacer that provides scroll length. */
 .nv-scroll {
   position: relative;
   z-index: 1;
@@ -2826,31 +2829,33 @@ body.nv-open { overflow: hidden; }
   scrollbar-width: thin;
   scrollbar-color: var(--red-dark) transparent;
 }
-.nv-beat {
-  min-height: 100svh;
-  display: grid;
-  place-items: center;
-  padding: 80px clamp(24px, 5vw, 72px);
+.nv-stage {
+  position: sticky;
+  top: 0;
+  height: 100%;
+  perspective: 1100px;
+  perspective-origin: 50% 50%;
+  overflow: hidden;
 }
-.nv-beat-inner {
-  width: 100%;
-  max-width: 1100px;
+.nv-track { width: 1px; }
+.nv-item {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  pointer-events: none; /* JS enables the focused item */
   text-align: center;
+}
+.nv-item-card {
+  width: min(640px, 88vw);
   transform-style: preserve-3d;
 }
-
-/* Reveal choreography: children rise in with a stagger once .nv-in lands */
-.nv-beat .nv-beat-inner > * {
-  opacity: 0;
-  transform: translateY(46px);
-  transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1), transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.nv-beat.nv-in .nv-beat-inner > * { opacity: 1; transform: translateY(0); }
-.nv-beat .nv-beat-inner > *:nth-child(2) { transition-delay: 0.1s; }
-.nv-beat .nv-beat-inner > *:nth-child(3) { transition-delay: 0.2s; }
-.nv-beat .nv-beat-inner > *:nth-child(4) { transition-delay: 0.3s; }
-/* Project cards are scroll-scrubbed by GSAP instead of the class reveal */
-.nv-beat-projects .nv-beat-inner > .nv-cards { opacity: 1; transform: none; transition: none; }
+.nv-item-name .nv-item-card { width: min(940px, 94vw); }
+.nv-item-toolkit .nv-item-card,
+.nv-item-certs .nv-item-card { width: min(860px, 92vw); }
+/* Project items carry the glass .nv-card chrome on the card itself */
+.nv-item-project .nv-item-card { width: min(560px, 88vw); }
 
 /* ── Beat 1: name ── */
 .nv-name {
@@ -2951,7 +2956,7 @@ body.nv-open { overflow: hidden; }
 }
 
 /* ── Section titles ── */
-.nv-beat-title {
+.nv-title {
   font-family: var(--font-display);
   font-size: clamp(1.8rem, 4.5vw, 3rem);
   font-weight: 700;
@@ -2960,13 +2965,7 @@ body.nv-open { overflow: hidden; }
   text-shadow: 0 0 30px rgba(217,119,87,0.25);
 }
 
-/* ── Beat 3: project cards ── */
-.nv-cards {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: clamp(16px, 2.5vw, 28px);
-  perspective: 900px;
-}
+/* ── Project cards (one per spiral item) ── */
 .nv-card {
   --accent: var(--red);
   text-align: left;
@@ -3054,12 +3053,12 @@ body.nv-open { overflow: hidden; }
   to   { transform: translate(var(--fx, 0px), var(--fy, -8px)); }
 }
 
-/* ── Beat 5: certifications ── */
+/* ── Certifications ── */
 .nv-certs {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  grid-template-columns: repeat(2, minmax(200px, 1fr));
   gap: 18px;
-  max-width: 980px;
+  max-width: 860px;
   margin: 0 auto;
   perspective: 900px;
 }
@@ -3172,15 +3171,34 @@ body.nv-open { overflow: hidden; }
   .nv-open-btn { padding: 8px 10px; }
   .nv-open-label { display: none; }
   .nav-actions { gap: 10px; }
-  .nv-cards { grid-template-columns: 1fr; }
   .nv-close { top: 14px; right: 14px; }
-  .nv-beat { padding: 64px 20px; }
   .nv-stat { padding: 20px 24px; }
+  .nv-certs { grid-template-columns: 1fr; }
 }
 
-/* ── Reduced motion: everything visible, nothing loops ── */
+/* ── Static fallback (reduced motion): plain scrolling column ── */
+.nv-overlay.nv-static .nv-stage {
+  position: static;
+  height: auto;
+  perspective: none;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 90px;
+  padding: 110px 20px 90px;
+}
+.nv-overlay.nv-static .nv-item {
+  position: static;
+  transform: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto;
+}
+.nv-overlay.nv-static .nv-track { display: none; }
+
+/* ── Reduced motion: nothing loops ── */
 @media (prefers-reduced-motion: reduce) {
-  .nv-beat .nv-beat-inner > * { opacity: 1; transform: none; transition: none; }
   .nv-scroll-hint span, .nv-chip { animation: none; }
   .nv-loader { display: none; }
 }

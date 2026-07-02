@@ -2435,12 +2435,12 @@ function initContactImmersive() {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   NEBULA VIEW — immersive fullscreen scroll overlay.
+   NEBULA VIEW — immersive spiral warp tunnel overlay.
    Own scroll container (no ScrollTrigger: the overlay is hidden at
-   init and global refreshes would fight its measurements). Reveals
-   use an IntersectionObserver rooted on the container; parallax and
-   the project fly-ins are driven by scrollTop inside the rAF loop
-   that already paints the canvas.
+   init and global refreshes would fight its measurements). The
+   .nv-stage is a sticky 3D viewport: every .nv-item spirals inward
+   toward the camera as you scroll (transforms computed per frame
+   from scrollTop), over a zoom-parallax 3D starfield canvas.
 ───────────────────────────────────────────────────────── */
 function initNebulaView() {
   const overlay = document.getElementById('nebula-view');
@@ -2450,20 +2450,28 @@ function initNebulaView() {
   const canvas = overlay.querySelector('.nv-canvas');
   const ctx = canvas.getContext('2d');
   const scrollEl = overlay.querySelector('.nv-scroll');
+  const track = overlay.querySelector('.nv-track');
   const loader = overlay.querySelector('.nv-loader');
   const closeBtn = overlay.querySelector('.nv-close');
+  const items = [...overlay.querySelectorAll('.nv-item')];
   const hasGsap = typeof gsap !== 'undefined';
   const hoverFine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
   const isSmall = window.matchMedia('(max-width: 680px)').matches;
 
   let isOpen = false;
   let rafId = null;
+  let rafTicked = false; // stays false in environments where rAF never fires
   let seenOnce = false;
   let lastFocus = null;
-  let scrollFrac = 0;
-  let cardSetters = [];
-  let cardBase = 0; // .nv-beat-projects offsetTop, cached on open/resize
+  let vw = 0, vh = 1;
+  let target = 0;      // raw scrollTop
+  let smooth = 0;      // inertial copy of target (scrub lag)
+  let prevSmooth = 0;
+  let vel = 0;         // px/frame — drives the star warp streaks
+  const intro = { v: 0 }; // extra progress offset for the entry fly-in
   const mouse = { tx: 0, ty: 0, x: 0, y: 0 };
+
+  if (PREFERS_REDUCED_MOTION) overlay.classList.add('nv-static');
 
   /* ── Canvas: pre-rendered cloud sprites + layered star field ── */
   function makeCloudSprite(r, g, b) {
@@ -2484,27 +2492,29 @@ function initNebulaView() {
     makeCloudSprite(184, 92, 62),   // ember
     makeCloudSprite(90, 30, 10),    // deep rust
   ];
-  const CLOUDS = (isSmall ? 3 : 6);
+  /* Clouds orbit the screen center as you travel (ring placement) */
+  const CLOUDS = (isSmall ? 4 : 7);
   const clouds = Array.from({ length: CLOUDS }, (_, i) => ({
     sprite: sprites[i % 3],
-    fx: Math.random(),
-    fy: Math.random() * 1.6,
-    scale: 1.5 + Math.random() * 2,
-    speed: 0.03 + Math.random() * 0.05,
-    phase: Math.random() * Math.PI * 2,
-    depth: 0.15 + Math.random() * 0.35,
-    alpha: 0.05 + Math.random() * 0.07,
+    ang: Math.random() * Math.PI * 2,   // position on the ring
+    dist: 0.15 + Math.random() * 0.6,   // ring radius (fraction of focal)
+    scale: 1.2 + Math.random() * 2,
+    spin: 0.08 + Math.random() * 0.12,  // orbit per unit of travel
+    drift: 0.015 + Math.random() * 0.035,
+    depth: 0.2 + Math.random() * 0.5,
+    alpha: 0.05 + Math.random() * 0.08,
   }));
-  const STAR_LAYERS = [0.05, 0.12, 0.25];
-  const STARS = isSmall ? 120 : 300;
+  /* True 3D starfield: z shrinks as you scroll forward (zoom parallax) */
+  const STARS = isSmall ? 220 : 520;
   const stars = Array.from({ length: STARS }, () => ({
-    fx: Math.random(),
-    fy: Math.random(),
-    r: 0.4 + Math.random() * 1.1,
-    depth: STAR_LAYERS[Math.floor(Math.random() * 3)],
+    x: Math.random() * 2 - 1,
+    y: Math.random() * 2 - 1,
+    z: 0.06 + Math.random() * 1.0,
+    r: 0.3 + Math.random() * 1.0,
     ts: 0.5 + Math.random() * 1.6,
     to: Math.random() * Math.PI * 2,
-    coral: Math.random() < 0.2,
+    coral: Math.random() < 0.22,
+    px: null, py: null, // previous projected position (warp streaks)
   }));
   let meteor = null;
   let nextMeteor = 0;
@@ -2518,32 +2528,55 @@ function initNebulaView() {
 
   function drawFrame(t) {
     const W = overlay.clientWidth, H = overlay.clientHeight;
+    const cx = W / 2, cy = H / 2;
+    const f = Math.min(W, H) * 0.5; // focal length for star projection
+    const P = smooth / vh + intro.v;
     mouse.x += (mouse.tx - mouse.x) * 0.06;
     mouse.y += (mouse.ty - mouse.y) * 0.06;
     ctx.clearRect(0, 0, W, H);
 
     for (const cl of clouds) {
-      const size = cl.scale * Math.min(W, H) * 0.8;
-      const x = cl.fx * W - size / 2 + Math.sin(t * cl.speed + cl.phase) * 30 + mouse.x * cl.depth * 40;
-      const y = cl.fy * H - size / 2 - scrollFrac * H * cl.depth * 1.5 + mouse.y * cl.depth * 30;
+      const a = cl.ang + P * cl.spin + t * cl.drift;
+      const d = cl.dist * f * 1.6;
+      const size = cl.scale * Math.min(W, H) * (0.7 + P * cl.depth * 0.02);
+      const x = cx + Math.cos(a) * d + mouse.x * cl.depth * 50 - size / 2;
+      const y = cy + Math.sin(a) * d * 0.7 + mouse.y * cl.depth * 36 - size / 2;
       ctx.globalAlpha = cl.alpha;
       ctx.drawImage(cl.sprite, x, y, size, size);
     }
 
+    const warping = Math.abs(vel) > 12;
     for (const s of stars) {
+      s.z -= vel * 0.00045 + 0.00022;
+      if (s.z < 0.06) { s.z += 1.06; s.x = Math.random() * 2 - 1; s.y = Math.random() * 2 - 1; s.px = null; }
+      else if (s.z > 1.12) { s.z -= 1.06; s.px = null; }
+      const par = 1 - s.z; // nearer stars react more to the mouse
+      const sx = cx + (s.x / s.z) * f + mouse.x * 24 * par;
+      const sy = cy + (s.y / s.z) * f + mouse.y * 18 * par;
+      if (sx < -40 || sx > W + 40 || sy < -40 || sy > H + 40) { s.px = sx; s.py = sy; continue; }
       const tw = 0.5 + 0.5 * Math.sin(t * s.ts + s.to);
-      const x = (((s.fx * W + mouse.x * s.depth * 60) % W) + W) % W;
-      const y = (((s.fy * H - scrollFrac * H * s.depth * 3 + mouse.y * s.depth * 40) % H) + H) % H;
-      ctx.globalAlpha = 0.25 + tw * 0.6;
-      ctx.fillStyle = s.coral ? '#E8A188' : '#FFFFFF';
-      ctx.beginPath();
-      ctx.arc(x, y, s.r, 0, Math.PI * 2);
-      ctx.fill();
-      if (s.r > 1.3 && tw > 0.92) { // occasional glint cross on the brightest
-        ctx.globalAlpha = (tw - 0.92) * 6;
-        ctx.fillRect(x - s.r * 4, y - 0.4, s.r * 8, 0.8);
-        ctx.fillRect(x - 0.4, y - s.r * 4, 0.8, s.r * 8);
+      const size = Math.min(3, (s.r / s.z) * 0.9);
+      ctx.globalAlpha = (0.2 + tw * 0.65) * Math.min(1, (1.15 - s.z) * 2.5);
+      const col = s.coral ? '#E8A188' : '#FFFFFF';
+      if (warping && s.px !== null) {
+        ctx.strokeStyle = col;
+        ctx.lineWidth = Math.max(0.6, size * 0.8);
+        ctx.beginPath();
+        ctx.moveTo(s.px, s.py);
+        ctx.lineTo(sx, sy);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        ctx.arc(sx, sy, size, 0, Math.PI * 2);
+        ctx.fill();
+        if (size > 1.4 && tw > 0.92) { // glint cross on the brightest
+          ctx.globalAlpha = (tw - 0.92) * 6;
+          ctx.fillRect(sx - size * 4, sy - 0.4, size * 8, 0.8);
+          ctx.fillRect(sx - 0.4, sy - size * 4, 0.8, size * 8);
+        }
       }
+      s.px = sx; s.py = sy;
     }
 
     if (!PREFERS_REDUCED_MOTION) {
@@ -2581,43 +2614,75 @@ function initNebulaView() {
     ctx.globalAlpha = 1;
   }
 
+  /* ── The spiral: place every item on a vortex path from its travel t ──
+     t < 0: approaching from deep space · t = 0: front and center · t > 0:
+     flying past the camera. A dwell plateau around t=0 slows the motion
+     ~6x so each card straightens and hangs readably before whipping away. */
+  function layoutItems() {
+    if (PREFERS_REDUCED_MOTION || !vh) return;
+    const P = smooth / vh + intro.v;
+    const R = vw * (isSmall ? 0.30 : 0.22);
+    items.forEach((item, i) => {
+      const t = P - i;
+      const td = t - Math.max(-0.28, Math.min(0.28, t)) * 0.85;
+      let o;
+      if (td < -1.9) o = Math.max(0, (td + 2.6) / 0.7);
+      else if (td > 0.35) o = Math.max(0, 1 - (td - 0.35) / 0.4);
+      else o = 1;
+      if (o <= 0.01) {
+        item.style.visibility = 'hidden';
+        item.style.pointerEvents = 'none';
+        return;
+      }
+      const ang = i * 2.4 + td * 2.6;               // orbit: >1 revolution per approach
+      const rad = Math.abs(td) * R;                 // converges into dead center
+      const x = Math.cos(ang) * rad;
+      const y = Math.sin(ang) * rad * 0.65;
+      const z = Math.min(td < 0 ? td * 900 : td * 1400, 1000);
+      const rz = td * -70;
+      const ry = td * 35;
+      item.style.visibility = 'visible';
+      item.style.opacity = o.toFixed(3);
+      item.style.zIndex = String(2000 + Math.round(td * 100));
+      item.style.pointerEvents = Math.abs(td) < 0.6 ? 'auto' : 'none';
+      item.style.transform =
+        `translate(-50%, -50%) translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, ${z.toFixed(1)}px) ` +
+        `rotateY(${ry.toFixed(2)}deg) rotateZ(${rz.toFixed(2)}deg)`;
+    });
+  }
+
   function loop(now) {
     const t = now / 1000;
+    smooth += (target - smooth) * 0.09;
+    if (Math.abs(target - smooth) < 0.1) smooth = target;
+    vel = smooth - prevSmooth;
+    prevSmooth = smooth;
     drawFrame(t);
-    /* Project cards fly in from depth, scrubbed by container scroll */
-    if (cardSetters.length) {
-      const vh = overlay.clientHeight;
-      const top = scrollEl.scrollTop;
-      cardSetters.forEach((s, i) => {
-        const p = Math.min(1, Math.max(0, (top + vh - (cardBase + vh * 0.35 + i * vh * 0.1)) / (vh * 0.55)));
-        s.y(120 * (1 - p));
-        s.scale(0.82 + 0.18 * p);
-        s.op(p);
-      });
-    }
+    layoutItems();
+    rafTicked = true;
     rafId = requestAnimationFrame(loop);
   }
 
-  /* ── Build dynamic beats once (projects from PROJECTS[], chips cloned) ── */
-  function buildBeats() {
+  /* ── Build dynamic items once (projects from PROJECTS[], chips cloned) ── */
+  function buildItems() {
     if (overlay.dataset.built) return;
     overlay.dataset.built = '1';
 
-    const cardsWrap = overlay.querySelector('.nv-cards');
-    if (cardsWrap && typeof PROJECTS !== 'undefined') {
-      PROJECTS.forEach(p => {
-        const card = document.createElement('article');
-        card.className = 'nv-card';
-        applyAccent(card, p);
+    if (typeof PROJECTS !== 'undefined') {
+      overlay.querySelectorAll('.nv-item-project').forEach(item => {
+        const p = PROJECTS[parseInt(item.dataset.project, 10) || 0];
+        const holder = item.querySelector('.nv-item-card');
+        if (!p || !holder) return;
+        holder.classList.add('nv-card');
+        applyAccent(holder, p);
         const tags = (typeof tagHTML === 'function')
           ? p.tags.map(tagHTML).join('')
           : p.tags.map(tg => `<span class="tag">${tg}</span>`).join('');
-        card.innerHTML =
+        holder.innerHTML =
           `<span class="nv-card-counter">${p.counter}</span>` +
           `<h4 class="nv-card-name">${p.name}</h4>` +
           `<p class="nv-card-desc">${p.desc}</p>` +
           `<div class="nv-card-tags">${tags}</div>`;
-        cardsWrap.appendChild(card);
       });
     }
 
@@ -2643,19 +2708,6 @@ function initNebulaView() {
     }
 
     setupHover();
-    setupReveals();
-  }
-
-  /* ── Reveals: beats rise in as they enter the container viewport ── */
-  function setupReveals() {
-    if (PREFERS_REDUCED_MOTION) {
-      overlay.querySelectorAll('.nv-beat').forEach(b => b.classList.add('nv-in'));
-      return;
-    }
-    const io = new IntersectionObserver(entries => {
-      entries.forEach(en => en.target.classList.toggle('nv-in', en.isIntersecting));
-    }, { root: scrollEl, threshold: 0.35 });
-    overlay.querySelectorAll('.nv-beat').forEach(b => io.observe(b));
   }
 
   /* ── Hover micro-interactions (pointer devices only) ── */
@@ -2762,25 +2814,32 @@ function initNebulaView() {
 
   function reveal() {
     scrollEl.scrollTop = 0;
-    scrollFrac = 0;
-    const hero = overlay.querySelector('.nv-beat-hero');
-    if (hero) hero.classList.add('nv-in');
+    target = smooth = prevSmooth = 0;
     if (hasGsap && !PREFERS_REDUCED_MOTION) {
-      gsap.fromTo(hero.querySelectorAll('.nv-beat-inner > *'),
-        { opacity: 0, y: 36 },
-        { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out', stagger: 0.09, clearProps: 'opacity,transform' }
-      );
+      /* The name card itself spirals in from deep space on entry */
+      intro.v = -1.6;
+      gsap.to(intro, { v: 0, duration: 1.2, ease: 'power3.out', onUpdate: layoutItems });
+    } else {
+      intro.v = 0;
+      layoutItems();
     }
   }
 
   /* ── Measurement + listeners bound only while open ── */
   function measure() {
-    const projBeat = overlay.querySelector('.nv-beat-projects');
-    cardBase = projBeat ? projBeat.offsetTop : 0;
+    vw = overlay.clientWidth;
+    vh = overlay.clientHeight || 1;
+    if (track && !PREFERS_REDUCED_MOTION) {
+      track.style.height = ((items.length - 1) * vh) + 'px';
+    }
   }
   function onScroll() {
-    const max = scrollEl.scrollHeight - scrollEl.clientHeight;
-    scrollFrac = max > 0 ? scrollEl.scrollTop / max : 0;
+    target = scrollEl.scrollTop;
+    /* Where rAF never fires (preview harness), update synchronously */
+    if (!rafTicked) {
+      smooth = prevSmooth = target;
+      layoutItems();
+    }
   }
   function onMouse(e) {
     mouse.tx = (e.clientX / overlay.clientWidth) * 2 - 1;
@@ -2789,6 +2848,7 @@ function initNebulaView() {
   function onResize() {
     sizeCanvas();
     measure();
+    layoutItems();
   }
   function onKeydown(e) {
     if (!isOpen) return;
@@ -2806,26 +2866,16 @@ function initNebulaView() {
   function open() {
     if (isOpen) return;
     isOpen = true;
-    buildBeats();
+    buildItems();
     lastFocus = document.activeElement;
     overlay.classList.add('open');
     overlay.setAttribute('aria-hidden', 'false');
     document.body.classList.add('nv-open');
     sizeCanvas();
     measure();
-
-    /* Prime the project cards at their flown-out state before the loop drives them */
-    cardSetters = [];
-    if (hasGsap && !PREFERS_REDUCED_MOTION) {
-      overlay.querySelectorAll('.nv-card').forEach(card => {
-        gsap.set(card, { y: 120, scale: 0.82, opacity: 0 });
-        cardSetters.push({
-          y: gsap.quickTo(card, 'y', { duration: 0.35, ease: 'power2.out' }),
-          scale: gsap.quickTo(card, 'scale', { duration: 0.35, ease: 'power2.out' }),
-          op: gsap.quickTo(card, 'opacity', { duration: 0.35, ease: 'power2.out' }),
-        });
-      });
-    }
+    scrollEl.scrollTop = 0;
+    target = smooth = prevSmooth = 0;
+    layoutItems();
 
     scrollEl.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onResize);

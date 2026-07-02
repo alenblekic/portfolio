@@ -2419,8 +2419,6 @@ body.cs-open { overflow: hidden; }
 .contact-two-col {
   position: relative;
   z-index: 1;
-}
-.contact-two-col {
   display: grid;
   grid-template-columns: 55% 45%;
   align-items: center;
@@ -2456,6 +2454,9 @@ body.cs-open { overflow: hidden; }
 #saturn-canvas {
   display: block;
   cursor: default;
+  /* internal resolution is 560px; display size tracks the column */
+  width: clamp(380px, 44vw, 560px);
+  height: auto;
 }
 @media (max-width: 860px) {
   .contact-two-col { grid-template-columns: 1fr; }

@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initSectionFlash();
   initRainGrid();
   initSaturn();
+  initContactImmersive();
   initSwedenRipple();
   initCertTilt();
 });
@@ -1836,14 +1837,39 @@ function initSaturn() {
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
 
-  const SIZE = 500;
+  /* internal resolution; display size is responsive via CSS */
+  const SIZE = 560;
   canvas.width  = SIZE;
   canvas.height = SIZE;
-  canvas.style.width  = SIZE + 'px';
-  canvas.style.height = SIZE + 'px';
 
-  const CX = SIZE / 2, CY = SIZE / 2 + 55, R = 88;
+  const CX = SIZE / 2, CY = SIZE / 2 + 55, R = 92;
   const TILT = 0.36; /* ring y-compression — viewing angle ~21° */
+
+  /* ── Comets on wide orbits outside the rings ── */
+  const COMETS = [
+    { a: R * 2.62, angle: Math.random() * Math.PI * 2, speed:  0.0042, rgb: '217,119,87',  size: 2.6 },
+    { a: R * 2.88, angle: Math.random() * Math.PI * 2, speed: -0.0026, rgb: '185,212,255', size: 2.0 },
+  ];
+
+  /* ── Small moon transiting between the A ring and the comet orbits ── */
+  const MOON = { a: R * 2.48, angle: Math.random() * Math.PI * 2, speed: 0.0056, r: 5 };
+
+  /* ── Ring grains: individually orbiting particles that make the rings sparkle ── */
+  const RING_TONES = ['255,244,220', '228,208,170', '198,176,138'];
+  const ringGrains = Array.from({ length: 620 }, () => {
+    const rr = R * (1.24 + Math.random() * 1.04); /* C ring → A ring outer */
+    const inGap = rr > R * 1.96 && rr < R * 2.05; /* Cassini Division is sparse */
+    return {
+      r: rr,
+      angle: Math.random() * Math.PI * 2,
+      speed: 0.0038 * Math.sqrt((R * 1.7) / rr), /* Kepler-ish: outer grains lag */
+      size: Math.random() * 1.05 + 0.35,
+      tone: RING_TONES[(Math.random() * RING_TONES.length) | 0],
+      base: (inGap ? 0.10 : 0.55) * (0.5 + Math.random() * 0.5),
+      tw: Math.random() * Math.PI * 2,
+      ts: 0.03 + Math.random() * 0.05,
+    };
+  });
 
   /* ── Ring definitions (inner radius, outer radius, rgb, alpha) ── */
   /* Cassini palette: D faint, C brown, B bright cream, Cassini gap dark, A gold, F thin */
@@ -2081,6 +2107,129 @@ function initSaturn() {
     ctx.restore();
   }
 
+  /* ── Comet orbit hairlines ── */
+  function drawOrbitLines() {
+    COMETS.forEach(c => {
+      ctx.beginPath();
+      ctx.ellipse(CX, CY, c.a, c.a * TILT, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+  }
+
+  /* Draw comets in the given half. front=true → lower arc (sin > 0). */
+  function drawComets(front) {
+    COMETS.forEach(c => {
+      const inFront = Math.sin(c.angle) > 0;
+      if (inFront !== front) return;
+      const x = CX + Math.cos(c.angle) * c.a;
+      const y = CY + Math.sin(c.angle) * c.a * TILT;
+      /* trail: fading dots along the orbit behind the comet */
+      const dir = c.speed >= 0 ? 1 : -1;
+      for (let k = 1; k <= 9; k++) {
+        const ta = c.angle - dir * k * 0.045;
+        const tx = CX + Math.cos(ta) * c.a;
+        const ty = CY + Math.sin(ta) * c.a * TILT;
+        ctx.beginPath();
+        ctx.arc(tx, ty, c.size * (1 - k / 11), 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${c.rgb},${0.34 * (1 - k / 10)})`;
+        ctx.fill();
+      }
+      /* glowing head */
+      const g = ctx.createRadialGradient(x, y, 0, x, y, c.size * 5);
+      g.addColorStop(0, `rgba(${c.rgb},0.9)`);
+      g.addColorStop(0.35, `rgba(${c.rgb},0.28)`);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.beginPath();
+      ctx.arc(x, y, c.size * 5, 0, Math.PI * 2);
+      ctx.fillStyle = g;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x, y, c.size, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.95)';
+      ctx.fill();
+    });
+  }
+
+  /* Ring grains in the given half. front=true → lower arc (sin > 0). */
+  function drawRingGrains(front, tick) {
+    ringGrains.forEach(gr => {
+      const inFront = Math.sin(gr.angle) > 0;
+      if (inFront !== front) return;
+      const x = CX + Math.cos(gr.angle) * gr.r;
+      const y = CY + Math.sin(gr.angle) * gr.r * TILT;
+      const a = gr.base * (0.55 + 0.45 * Math.sin(tick * gr.ts + gr.tw));
+      ctx.beginPath();
+      ctx.arc(x, y, gr.size, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${gr.tone},${a})`;
+      ctx.fill();
+    });
+  }
+
+  /* Moon with simple day-side shading, occluded by the globe like the comets */
+  function drawMoon(front) {
+    const inFront = Math.sin(MOON.angle) > 0;
+    if (inFront !== front) return;
+    const x = CX + Math.cos(MOON.angle) * MOON.a;
+    const y = CY + Math.sin(MOON.angle) * MOON.a * TILT;
+    const g = ctx.createRadialGradient(x - MOON.r * 0.4, y - MOON.r * 0.4, 0, x, y, MOON.r);
+    g.addColorStop(0, 'rgba(225,220,210,0.95)');
+    g.addColorStop(0.65, 'rgba(168,162,150,0.9)');
+    g.addColorStop(1, 'rgba(88,84,76,0.85)');
+    ctx.beginPath();
+    ctx.arc(x, y, MOON.r, 0, Math.PI * 2);
+    ctx.fillStyle = g;
+    ctx.fill();
+    /* faint craters */
+    ctx.fillStyle = 'rgba(60,56,50,0.35)';
+    ctx.beginPath(); ctx.arc(x + 1.4, y + 0.8, 1.1, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x - 1.6, y - 1.2, 0.8, 0, Math.PI * 2); ctx.fill();
+  }
+
+  /* ── Meteors streaking across the section starfield ── */
+  const meteors = [];
+  let meteorCountdown = 140; /* first one arrives quickly */
+  function updateMeteors() {
+    if (!bgCtx) return;
+    const W = bgCanvas.width, H = bgCanvas.height;
+    if (--meteorCountdown <= 0) {
+      meteorCountdown = 260 + Math.random() * 420; /* every ~4–11s */
+      const fromLeft = Math.random() < 0.5;
+      meteors.push({
+        x: fromLeft ? Math.random() * W * 0.35 : W * 0.55 + Math.random() * W * 0.4,
+        y: Math.random() * H * 0.45,
+        vx: (fromLeft ? 1 : -1) * (7 + Math.random() * 6),
+        vy: 3.5 + Math.random() * 2.5,
+        life: 1,
+        decay: 0.012 + Math.random() * 0.008,
+        coral: Math.random() < 0.25,
+      });
+    }
+    for (let i = meteors.length - 1; i >= 0; i--) {
+      const m = meteors[i];
+      m.x += m.vx; m.y += m.vy; m.life -= m.decay;
+      if (m.life <= 0 || m.y > H + 40) { meteors.splice(i, 1); continue; }
+      const tailX = m.x - m.vx * 11, tailY = m.y - m.vy * 11;
+      const grad = bgCtx.createLinearGradient(m.x, m.y, tailX, tailY);
+      const rgb = m.coral ? '255,170,130' : '235,242,255';
+      grad.addColorStop(0, `rgba(${rgb},${0.85 * m.life})`);
+      grad.addColorStop(1, `rgba(${rgb},0)`);
+      bgCtx.strokeStyle = grad;
+      bgCtx.lineWidth = 1.6;
+      bgCtx.lineCap = 'round';
+      bgCtx.beginPath();
+      bgCtx.moveTo(m.x, m.y);
+      bgCtx.lineTo(tailX, tailY);
+      bgCtx.stroke();
+      /* bright head */
+      bgCtx.beginPath();
+      bgCtx.arc(m.x, m.y, 1.4, 0, Math.PI * 2);
+      bgCtx.fillStyle = `rgba(255,255,255,${0.9 * m.life})`;
+      bgCtx.fill();
+    }
+  }
+
   function drawGlobe() {
     /* 1. Clip to sphere */
     ctx.save();
@@ -2114,6 +2263,32 @@ function initSaturn() {
       }
     });
 
+    /* 2b. Storm spot — a coral-tinted oval drifting with its band */
+    const stormBandY = CY - R + 0.63 * R * 2;
+    const stormDrift = ((offset * 0.42) % (R * 2.6)) - R * 0.3;
+    [0, -R * 2.6].forEach(wrapDx => {
+      const sx = CX - R + stormDrift + wrapDx;
+      const sy = stormBandY + Math.sin(t * 0.5) * 1.5;
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.rotate(-0.06);
+      const sg = ctx.createRadialGradient(0, 0, 0, 0, 0, 24);
+      sg.addColorStop(0,   'rgba(190,84,52,0.55)');
+      sg.addColorStop(0.5, 'rgba(217,119,87,0.30)');
+      sg.addColorStop(1,   'rgba(0,0,0,0)');
+      ctx.scale(1, 0.42);
+      ctx.beginPath();
+      ctx.arc(0, 0, 24, 0, Math.PI * 2);
+      ctx.fillStyle = sg;
+      ctx.fill();
+      /* darker eye of the storm */
+      ctx.beginPath();
+      ctx.arc(2, 0, 8, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(120,48,28,0.40)';
+      ctx.fill();
+      ctx.restore();
+    });
+
     /* 3. Ring shadow across globe — dark horizontal band */
     const sh = ctx.createLinearGradient(CX, CY - R * 0.18, CX, CY + R * 0.18);
     sh.addColorStop(0,   'rgba(8,5,2,0)');
@@ -2142,6 +2317,25 @@ function initSaturn() {
     ctx.beginPath(); ctx.arc(CX, CY, R, 0, Math.PI * 2);
     ctx.fillStyle = limb; ctx.fill();
 
+    /* 5b. Coral rim light on the left limb — lit from the direction of the copy */
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(CX, CY, R, 0, Math.PI * 2);
+    ctx.clip();
+    const rim = ctx.createRadialGradient(CX - R * 1.55, CY + R * 0.15, R * 0.4, CX - R * 1.55, CY + R * 0.15, R * 2.2);
+    rim.addColorStop(0,    'rgba(217,119,87,0.42)');
+    rim.addColorStop(0.45, 'rgba(217,119,87,0.14)');
+    rim.addColorStop(1,    'rgba(0,0,0,0)');
+    ctx.fillStyle = rim;
+    ctx.fillRect(CX - R, CY - R, R * 2, R * 2);
+    ctx.restore();
+    /* thin coral atmosphere arc just outside the lit limb */
+    ctx.beginPath();
+    ctx.arc(CX, CY, R + 1.5, Math.PI * 0.62, Math.PI * 1.38);
+    ctx.strokeStyle = 'rgba(217,119,87,0.35)';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
     /* 6. Constant atmosphere glow (no hover change) */
     const glow = ctx.createRadialGradient(CX, CY, R - 2, CX, CY, R + 32);
     glow.addColorStop(0,   'rgba(215,188,130,0.11)');
@@ -2158,9 +2352,16 @@ function initSaturn() {
     drawNebulae();
     drawStars(bgStars, 0);
     drawStars(ringStars, 0);
+    drawOrbitLines();
+    drawComets(false);
+    drawMoon(false);
     drawRingsHalf(Math.PI, Math.PI * 2);
+    drawRingGrains(false, 0);
     drawGlobe();
     drawRingsHalf(0, Math.PI);
+    drawRingGrains(true, 0);
+    drawComets(true);
+    drawMoon(true);
     drawStars(fgStars, 0);
     return;
   }
@@ -2173,15 +2374,28 @@ function initSaturn() {
 
     ctx.clearRect(0, 0, SIZE, SIZE);
     drawSectionStarfield(t * 60);
+    updateMeteors();
 
-    /* render order: nebulae → bg stars → ring stars →
-       back rings → globe → front rings → fg stars (pierce everything) */
+    /* render order: nebulae → bg stars → ring stars → orbits →
+       back (comets, moon, rings, grains) → globe →
+       front (rings, grains, comets, moon) → fg stars */
     drawNebulae();
     drawStars(bgStars,   t * 60);
     drawStars(ringStars, t * 60);
+    drawOrbitLines();
+    const speedBoost = 1 + hoverP * 2.5;
+    COMETS.forEach(c => { c.angle += c.speed * speedBoost; });
+    MOON.angle += MOON.speed * speedBoost;
+    ringGrains.forEach(gr => { gr.angle += gr.speed * speedBoost; });
+    drawComets(false);                   /* upper arc — behind globe */
+    drawMoon(false);
     drawRingsHalf(Math.PI, Math.PI * 2); /* back half — above globe */
+    drawRingGrains(false, t * 60);
     drawGlobe();
     drawRingsHalf(0, Math.PI);           /* front half — below globe */
+    drawRingGrains(true, t * 60);
+    drawComets(true);                    /* lower arc — in front */
+    drawMoon(true);
     drawStars(fgStars,   t * 60);        /* pierce through everything */
 
     raf = requestAnimationFrame(loop);
@@ -2192,4 +2406,29 @@ function initSaturn() {
     else { cancelAnimationFrame(raf); raf = null; }
   }, { threshold: 0.1 });
   obs.observe(canvas);
+}
+
+/* ── Contact finale extras: planet levitation + magnetic CTA ── */
+function initContactImmersive() {
+  if (typeof gsap === 'undefined' || PREFERS_REDUCED_MOTION) return;
+  const hoverFine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+  /* Slow levitation — the planet gently floats in place */
+  const planetWrap = document.querySelector('.contact-planet-wrap');
+  if (planetWrap) {
+    gsap.to(planetWrap, { y: 14, duration: 4.6, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+  }
+
+  /* Magnetic CTA: pulls toward the cursor, springs home on leave */
+  const btn = document.getElementById('copy-email-btn');
+  if (btn && hoverFine) {
+    const bx = gsap.quickTo(btn, 'x', { duration: 0.4, ease: 'power3' });
+    const by = gsap.quickTo(btn, 'y', { duration: 0.4, ease: 'power3' });
+    btn.addEventListener('mousemove', e => {
+      const r = btn.getBoundingClientRect();
+      bx((e.clientX - (r.left + r.width / 2)) * 0.3);
+      by((e.clientY - (r.top + r.height / 2)) * 0.3);
+    });
+    btn.addEventListener('mouseleave', () => { bx(0); by(0); });
+  }
 }

@@ -2449,6 +2449,7 @@ function initNebulaView() {
 
   const canvas = overlay.querySelector('.nv-canvas');
   const ctx = canvas.getContext('2d');
+  const stage = overlay.querySelector('.nv-stage');
   const scrollEl = overlay.querySelector('.nv-scroll');
   const track = overlay.querySelector('.nv-track');
   const loader = overlay.querySelector('.nv-loader');
@@ -2509,6 +2510,7 @@ function initNebulaView() {
   /* True 3D starfield: z shrinks as you scroll forward (zoom parallax) */
   const STARS = isSmall ? 380 : 900;
   const heroGlow = makeCloudSprite(200, 215, 255); // soft halo under hero stars
+  const coreGlow = makeCloudSprite(217, 119, 87);  // velocity-reactive tunnel core
   const stars = Array.from({ length: STARS }, () => {
     const hero = Math.random() < 0.06;
     const cr = Math.random();
@@ -2519,13 +2521,16 @@ function initNebulaView() {
       r: hero ? 1.4 + Math.random() * 0.9 : 0.3 + Math.random() * 1.0,
       ts: 0.5 + Math.random() * 1.6,
       to: Math.random() * Math.PI * 2,
+      sp: 0.6 + Math.random(), // differential depth speed
       col: cr < 0.12 ? '#E8A188' : cr < 0.4 ? '#BFD4FF' : '#FFFFFF',
       hero,
       px: null, py: null, // previous projected position (warp streaks)
     };
   });
-  let meteor = null;
+  let meteors = [];
   let nextMeteor = 0;
+  let burst = null;   // { born } — light-gate fired when crossing into a section
+  let lastStop = 0;   // Math.round(P), tracked in loop()
 
   function sizeCanvas() {
     const dpr = Math.min(window.devicePixelRatio || 1, isSmall ? 1.5 : 2);
@@ -2553,16 +2558,43 @@ function initNebulaView() {
       ctx.drawImage(cl.sprite, x, y, size, size);
     }
 
-    drawPath(P, cx, cy, t);
+    /* Light-gate burst (section crossings) + velocity core glow */
+    let burstK = 0;
+    if (burst) {
+      const age = t - burst.born;
+      if (age > 0.7) burst = null;
+      else burstK = 1 - age / 0.7;
+    }
+    const coreA = Math.min(0.16, Math.abs(vel) * 0.0025) + burstK * 0.22;
+    if (coreA > 0.005) {
+      const cs = Math.min(W, H) * 0.95;
+      ctx.globalAlpha = coreA;
+      ctx.drawImage(coreGlow, cx - cs / 2, cy - cs / 2, cs, cs);
+    }
+    if (burst) {
+      const k = 1 - Math.pow(1 - (t - burst.born) / 0.7, 3); // ease-out expansion
+      const rr = k * Math.min(W, H) * 0.75;
+      ctx.strokeStyle = '#E8A188';
+      ctx.globalAlpha = burstK * 0.25;
+      ctx.lineWidth = 14;
+      ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = burstK * 0.6;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI * 2); ctx.stroke();
+    }
 
-    const warping = Math.abs(vel) > 12;
+    const warping = Math.abs(vel) > 8;
+    const roll = P * 0.06 + t * 0.004; // slow idle revolve, rolls with travel
+    const rollC = Math.cos(roll), rollS = Math.sin(roll);
     for (const s of stars) {
-      s.z -= vel * 0.00045 + 0.00022;
+      s.z -= (vel * 0.00045 + 0.00028 + burstK * 0.004) * s.sp;
       if (s.z < 0.06) { s.z += 1.06; s.x = Math.random() * 2 - 1; s.y = Math.random() * 2 - 1; s.px = null; }
       else if (s.z > 1.12) { s.z -= 1.06; s.px = null; }
+      const rx = s.x * rollC - s.y * rollS;
+      const ry = s.x * rollS + s.y * rollC;
       const par = 1 - s.z; // nearer stars react more to the mouse
-      const sx = cx + (s.x / s.z) * f + mouse.x * 24 * par;
-      const sy = cy + (s.y / s.z) * f + mouse.y * 18 * par;
+      const sx = cx + (rx / s.z) * f + mouse.x * 24 * par;
+      const sy = cy + (ry / s.z) * f + mouse.y * 18 * par;
       if (sx < -40 || sx > W + 40 || sy < -40 || sy > H + 40) { s.px = sx; s.py = sy; continue; }
       const tw = 0.5 + 0.5 * Math.sin(t * s.ts + s.to);
       const size = Math.min(3, (s.r / s.z) * 0.9);
@@ -2597,134 +2629,69 @@ function initNebulaView() {
     }
 
     if (!PREFERS_REDUCED_MOTION) {
-      if (!meteor && t > nextMeteor) {
-        meteor = {
+      if (t > nextMeteor) {
+        const spawn = () => ({
           x: Math.random() * W * 0.7 + W * 0.15,
           y: Math.random() * H * 0.3,
           vx: 320 + Math.random() * 200,
           vy: 160 + Math.random() * 120,
           born: t,
-        };
-      }
-      if (meteor) {
-        const age = t - meteor.born;
-        if (age > 0.7) {
-          meteor = null;
-          nextMeteor = t + 4 + Math.random() * 5;
-        } else {
-          const mx = meteor.x + meteor.vx * age;
-          const my = meteor.y + meteor.vy * age;
-          const fade = 1 - age / 0.7;
-          const grad = ctx.createLinearGradient(mx, my, mx - meteor.vx * 0.18, my - meteor.vy * 0.18);
-          grad.addColorStop(0, `rgba(210,225,255,${0.9 * fade})`);
-          grad.addColorStop(1, 'rgba(210,225,255,0)');
-          ctx.globalAlpha = 1;
-          ctx.strokeStyle = grad;
-          ctx.lineWidth = 1.4;
-          ctx.beginPath();
-          ctx.moveTo(mx, my);
-          ctx.lineTo(mx - meteor.vx * 0.18, my - meteor.vy * 0.18);
-          ctx.stroke();
+        });
+        meteors.push(spawn());
+        if (Math.random() < 0.3) { // occasional twin, slightly delayed
+          const twin = spawn();
+          twin.born = t + 0.08;
+          meteors.push(twin);
         }
+        nextMeteor = t + 2.5 + Math.random() * 4;
+      }
+      for (let i = meteors.length - 1; i >= 0; i--) {
+        const m = meteors[i];
+        const age = t - m.born;
+        if (age > 0.7) { meteors.splice(i, 1); continue; }
+        if (age < 0) continue;
+        const mx = m.x + m.vx * age;
+        const my = m.y + m.vy * age;
+        const fade = 1 - age / 0.7;
+        const grad = ctx.createLinearGradient(mx, my, mx - m.vx * 0.18, my - m.vy * 0.18);
+        grad.addColorStop(0, `rgba(210,225,255,${0.9 * fade})`);
+        grad.addColorStop(1, 'rgba(210,225,255,0)');
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(mx, my);
+        ctx.lineTo(mx - m.vx * 0.18, my - m.vy * 0.18);
+        ctx.stroke();
       }
     }
     ctx.globalAlpha = 1;
   }
 
-  /* ── The spiral: position on the vortex path for travel offset t ──
+  /* ── The tunnel: cards fly straight at the camera for travel offset t ──
      t < 0: approaching from deep space · t = 0: front and center · t > 0:
      flying past the camera. A dwell plateau around t=0 slows the motion
-     ~6x so each card straightens and hangs readably before whipping away.
-     Shared by the DOM items (integer u) and the canvas path (continuous u). */
-  function spiralPos(u, P, R) {
-    const t = P - u;
+     ~6x so each card hangs readably at center before whipping away. Each
+     card drifts in from its own slight side offset, converging dead-ahead. */
+  function tunnelPos(i, P) {
+    const t = P - i;
     const td = t - Math.max(-0.28, Math.min(0.28, t)) * 0.85;
-    const ang = u * 2.4 + td * 2.6;               // orbit: >1 revolution per approach
-    const rad = Math.abs(td) * R;                 // converges into dead center
+    const far = Math.min(Math.max(0, -td), 2) / 2; // 0 at center → 1 deep ahead
     return {
       td,
-      x: Math.cos(ang) * rad,
-      y: Math.sin(ang) * rad * 0.65,
-      z: Math.min(td < 0 ? td * 900 : td * 1400, 1000),
+      x: Math.sin(i * 2.1) * vw * 0.09 * far,
+      y: Math.cos(i * 1.3) * vh * 0.05 * far,
+      z: Math.min(td < 0 ? td * 1500 : td * 1600, 1000),
     };
   }
 
-  /* ── Travel path + planet nodes: the same spiral the cards ride, projected
-     with the stage's CSS perspective so the line sits exactly under them.
-     Drawn under the stars; one coral node marks each section stop. ── */
-  const PERSP = 1100; // must match .nv-stage perspective in style.css
-  function drawPath(P, cx, cy, t) {
-    if (PREFERS_REDUCED_MOTION || !vh) return;
-    const R = vw * (isSmall ? 0.30 : 0.22);
-    const uStart = Math.max(-0.2, P - 1.2);
-    const uEnd = Math.min(items.length - 1 + 0.2, P + 4);
-    if (uEnd <= uStart) return;
-
-    /* Sample the spiral into screen-space points (null = too close to camera) */
-    const pts = [];
-    for (let u = uStart; u <= uEnd; u += 0.04) {
-      const p = spiralPos(u, P, R);
-      if (p.z > 950) { pts.push(null); continue; }
-      const sc = PERSP / (PERSP - p.z);
-      pts.push({ x: cx + p.x * sc, y: cy + p.y * sc, sc });
-    }
-
-    /* Two passes (wide faint halo, thin bright core); consecutive segments
-       with equal quantized alpha are batched into one stroke call. */
-    ctx.strokeStyle = '#D97757';
-    ctx.lineCap = 'round';
-    for (const pass of [0, 1]) {
-      let runAlpha = null;
-      for (let i = 1; i < pts.length; i++) {
-        const a0 = pts[i - 1], a1 = pts[i];
-        if (!a0 || !a1) { if (runAlpha !== null) { ctx.stroke(); runAlpha = null; } continue; }
-        const sc = (a0.sc + a1.sc) / 2;
-        const alpha = Math.round(Math.min(0.5, Math.max(0.05, sc * 0.32)) * 20) / 20;
-        const a = pass === 0 ? alpha * 0.35 : alpha;
-        if (runAlpha === null || Math.abs(runAlpha - a) > 0.001) {
-          if (runAlpha !== null) ctx.stroke();
-          ctx.globalAlpha = a;
-          ctx.lineWidth = (0.8 + sc * 1.2) * (pass === 0 ? 3 : 1);
-          ctx.beginPath();
-          ctx.moveTo(a0.x, a0.y);
-          runAlpha = a;
-        }
-        ctx.lineTo(a1.x, a1.y);
-      }
-      if (runAlpha !== null) ctx.stroke();
-    }
-
-    /* Planet nodes: filled disc + thin ring; the active stop pulses */
-    for (let i = 0; i < items.length; i++) {
-      if (i < uStart || i > uEnd) continue;
-      const p = spiralPos(i, P, R);
-      if (p.z > 950) continue;
-      const sc = PERSP / (PERSP - p.z);
-      const nx = cx + p.x * sc, ny = cy + p.y * sc;
-      const active = Math.abs(P - i) < 0.5;
-      const rr = Math.min(7, Math.max(2, 3 * sc)) * (active ? 1.25 : 1);
-      const baseA = Math.min(0.9, Math.max(0.15, sc * 0.5));
-      ctx.fillStyle = '#D97757';
-      ctx.globalAlpha = active ? Math.min(1, baseA + 0.3) : baseA;
-      ctx.beginPath();
-      ctx.arc(nx, ny, rr, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#E8A188';
-      ctx.lineWidth = 1;
-      ctx.globalAlpha = active ? 0.35 + 0.35 * Math.sin(t * 2.4) : baseA * 0.5;
-      ctx.beginPath();
-      ctx.arc(nx, ny, rr * 2.2, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
-  }
-
+  let railDots = [];
+  let railActive = -1;
   function layoutItems() {
     if (PREFERS_REDUCED_MOTION || !vh) return;
     const P = smooth / vh + intro.v;
-    const R = vw * (isSmall ? 0.30 : 0.22);
     items.forEach((item, i) => {
-      const pos = spiralPos(i, P, R);
+      const pos = tunnelPos(i, P);
       const td = pos.td;
       let o;
       if (td < -1.9) o = Math.max(0, (td + 2.6) / 0.7);
@@ -2733,18 +2700,24 @@ function initNebulaView() {
       if (o <= 0.01) {
         item.style.visibility = 'hidden';
         item.style.pointerEvents = 'none';
+        item.classList.remove('nv-front');
         return;
       }
-      const rz = td * -70;
-      const ry = td * 35;
       item.style.visibility = 'visible';
       item.style.opacity = o.toFixed(3);
       item.style.zIndex = String(2000 + Math.round(td * 100));
       item.style.pointerEvents = Math.abs(td) < 0.6 ? 'auto' : 'none';
+      item.classList.toggle('nv-front', Math.abs(td) < 0.12);
       item.style.transform =
-        `translate(-50%, -50%) translate3d(${pos.x.toFixed(1)}px, ${pos.y.toFixed(1)}px, ${pos.z.toFixed(1)}px) ` +
-        `rotateY(${ry.toFixed(2)}deg) rotateZ(${rz.toFixed(2)}deg)`;
+        `translate(-50%, -50%) translate3d(${pos.x.toFixed(1)}px, ${pos.y.toFixed(1)}px, ${pos.z.toFixed(1)}px)`;
     });
+    /* Progress rail: light the dot for the nearest stop */
+    const active = Math.max(0, Math.min(items.length - 1, Math.round(P)));
+    if (active !== railActive && railDots.length) {
+      if (railDots[railActive]) railDots[railActive].classList.remove('on');
+      railDots[active].classList.add('on');
+      railActive = active;
+    }
   }
 
   function loop(now) {
@@ -2753,7 +2726,16 @@ function initNebulaView() {
     if (Math.abs(target - smooth) < 0.1) smooth = target;
     vel = smooth - prevSmooth;
     prevSmooth = smooth;
+    /* Fire the light-gate when the nearest stop changes (not during the intro) */
+    const stop = Math.round(smooth / vh + intro.v);
+    if (stop !== lastStop) {
+      if (intro.v === 0) burst = { born: t };
+      lastStop = stop;
+    }
     drawFrame(t);
+    /* Camera parallax: the whole tunnel leans with the (smoothed) mouse */
+    if (stage) stage.style.perspectiveOrigin =
+      (50 + mouse.x * 4).toFixed(2) + '% ' + (50 + mouse.y * 3).toFixed(2) + '%';
     layoutItems();
     rafTicked = true;
     rafId = requestAnimationFrame(loop);
@@ -2802,6 +2784,37 @@ function initNebulaView() {
       name.innerHTML = name.textContent.split('')
         .map(ch => `<span class="nv-letter">${ch}</span>`).join('');
     }
+
+    /* Progress rail: one clickable dot per stop (labels are aria-only) */
+    const rail = document.createElement('div');
+    rail.className = 'nv-rail';
+    rail.setAttribute('aria-label', 'Sections');
+    railDots = items.map((item, i) => {
+      let label = 'Section ' + (i + 1);
+      if (item.classList.contains('nv-item-name')) label = 'Alen';
+      else if (item.classList.contains('nv-item-about')) label = 'About';
+      else if (item.classList.contains('nv-item-toolkit')) label = 'Toolkit';
+      else if (item.classList.contains('nv-item-certs')) label = 'Certifications';
+      else if (item.classList.contains('nv-item-contact')) label = 'Contact';
+      else if (item.classList.contains('nv-item-project') && typeof PROJECTS !== 'undefined') {
+        const p = PROJECTS[parseInt(item.dataset.project, 10) || 0];
+        if (p) { // PROJECTS[].name may contain HTML; aria-labels need plain text
+          const tmp = document.createElement('div');
+          tmp.innerHTML = p.name;
+          label = tmp.textContent.trim();
+        }
+      }
+      const dot = document.createElement('button');
+      dot.type = 'button';
+      dot.className = 'nv-rail-dot';
+      dot.setAttribute('aria-label', label);
+      dot.addEventListener('click', () => {
+        scrollEl.scrollTo({ top: i * vh, behavior: PREFERS_REDUCED_MOTION ? 'auto' : 'smooth' });
+      });
+      rail.appendChild(dot);
+      return dot;
+    });
+    overlay.appendChild(rail);
 
     setupHover();
   }

@@ -2838,6 +2838,9 @@ body.nv-open { overflow: hidden; }
   scrollbar-width: thin;
   scrollbar-color: var(--red-dark) transparent;
 }
+/* Tunnel mode is gesture-stepped (wheel/swipe/keys -> warpTo tween):
+   no native scrolling, no scrollbar. .nv-static keeps the native column. */
+.nv-overlay:not(.nv-static) .nv-scroll { overflow: hidden; }
 .nv-stage {
   position: sticky;
   top: 0;

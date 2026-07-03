@@ -2435,12 +2435,14 @@ function initContactImmersive() {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   NEBULA VIEW — immersive spiral warp tunnel overlay.
-   Own scroll container (no ScrollTrigger: the overlay is hidden at
-   init and global refreshes would fight its measurements). The
-   .nv-stage is a sticky 3D viewport: every .nv-item spirals inward
-   toward the camera as you scroll (transforms computed per frame
-   from scrollTop), over a zoom-parallax 3D starfield canvas.
+   NEBULA VIEW — immersive warp tunnel overlay.
+   Gesture-stepped navigation: no native scroll in tunnel mode (no
+   ScrollTrigger either — the overlay is hidden at init and global
+   refreshes would fight its measurements). Wheel flicks / swipes /
+   arrow keys request discrete warp jumps; a GSAP tween drives the
+   virtual position between stops, so input jitter never reaches the
+   cards. The .nv-stage is a full-viewport 3D stage whose .nv-items
+   fly at the camera over a zoom-parallax 3D starfield canvas.
 ───────────────────────────────────────────────────────── */
 function initNebulaView() {
   const overlay = document.getElementById('nebula-view');
@@ -2450,8 +2452,7 @@ function initNebulaView() {
   const canvas = overlay.querySelector('.nv-canvas');
   const ctx = canvas.getContext('2d');
   const stage = overlay.querySelector('.nv-stage');
-  const scrollEl = overlay.querySelector('.nv-scroll');
-  const track = overlay.querySelector('.nv-track');
+  const scrollEl = overlay.querySelector('.nv-scroll'); // scrolls only in .nv-static mode
   const loader = overlay.querySelector('.nv-loader');
   const closeBtn = overlay.querySelector('.nv-close');
   const items = [...overlay.querySelectorAll('.nv-item')];
@@ -2461,14 +2462,17 @@ function initNebulaView() {
 
   let isOpen = false;
   let rafId = null;
-  let rafTicked = false; // stays false in environments where rAF never fires
   let seenOnce = false;
   let lastFocus = null;
   let vw = 0, vh = 1;
-  let target = 0;      // raw scrollTop
-  let smooth = 0;      // inertial copy of target (scrub lag)
-  let prevSmooth = 0;
-  let vel = 0;         // px/frame — drives the star warp streaks
+  const pos = { p: 0 };   // virtual position in sections — the only motion source
+  let curIdx = 0;         // current stop index
+  let acc = 0;            // wheel gesture accumulator
+  let warpLock = 0;       // input swallowed until this timestamp (ms)
+  let lastWheelT = 0;
+  let touchY = null, touchLastY = null;
+  let prevPx = 0;
+  let vel = 0;            // px/frame — drives the star warp streaks
   const intro = { v: 0 }; // extra progress offset for the entry fly-in
   const mouse = { tx: 0, ty: 0, x: 0, y: 0 };
 
@@ -2543,7 +2547,7 @@ function initNebulaView() {
     const W = overlay.clientWidth, H = overlay.clientHeight;
     const cx = W / 2, cy = H / 2;
     const f = Math.min(W, H) * 0.5; // focal length for star projection
-    const P = smooth / vh + intro.v;
+    const P = pos.p + intro.v;
     mouse.x += (mouse.tx - mouse.x) * 0.06;
     mouse.y += (mouse.ty - mouse.y) * 0.06;
     ctx.clearRect(0, 0, W, H);
@@ -2689,7 +2693,7 @@ function initNebulaView() {
   let railActive = -1;
   function layoutItems() {
     if (PREFERS_REDUCED_MOTION || !vh) return;
-    const P = smooth / vh + intro.v;
+    const P = pos.p + intro.v;
     items.forEach((item, i) => {
       const pos = tunnelPos(i, P);
       const td = pos.td;
@@ -2722,12 +2726,11 @@ function initNebulaView() {
 
   function loop(now) {
     const t = now / 1000;
-    smooth += (target - smooth) * 0.09;
-    if (Math.abs(target - smooth) < 0.1) smooth = target;
-    vel = smooth - prevSmooth;
-    prevSmooth = smooth;
+    const px = pos.p * vh; // velocity in px/frame keeps the canvas effect scales
+    vel = px - prevPx;
+    prevPx = px;
     /* Fire the light-gate when the nearest stop changes (not during the intro) */
-    const stop = Math.round(smooth / vh + intro.v);
+    const stop = Math.round(pos.p + intro.v);
     if (stop !== lastStop) {
       if (intro.v === 0) burst = { born: t };
       lastStop = stop;
@@ -2737,7 +2740,6 @@ function initNebulaView() {
     if (stage) stage.style.perspectiveOrigin =
       (50 + mouse.x * 4).toFixed(2) + '% ' + (50 + mouse.y * 3).toFixed(2) + '%';
     layoutItems();
-    rafTicked = true;
     rafId = requestAnimationFrame(loop);
   }
 
@@ -2858,9 +2860,7 @@ function initNebulaView() {
       dot.type = 'button';
       dot.className = 'nv-rail-dot';
       dot.setAttribute('aria-label', label);
-      dot.addEventListener('click', () => {
-        scrollEl.scrollTo({ top: i * vh, behavior: PREFERS_REDUCED_MOTION ? 'auto' : 'smooth' });
-      });
+      dot.addEventListener('click', () => warpTo(i));
       rail.appendChild(dot);
       return dot;
     });
@@ -2973,9 +2973,10 @@ function initNebulaView() {
 
   function reveal() {
     scrollEl.scrollTop = 0;
-    target = smooth = prevSmooth = 0;
+    pos.p = 0; curIdx = 0; acc = 0; prevPx = 0;
+    warpLock = performance.now() + 1400; // no jumping mid-intro
     if (hasGsap && !PREFERS_REDUCED_MOTION) {
-      /* The name card itself spirals in from deep space on entry */
+      /* The name card itself flies in from deep space on entry */
       intro.v = -1.6;
       gsap.to(intro, { v: 0, duration: 1.2, ease: 'power3.out', onUpdate: layoutItems });
     } else {
@@ -2988,17 +2989,54 @@ function initNebulaView() {
   function measure() {
     vw = overlay.clientWidth;
     vh = overlay.clientHeight || 1;
-    if (track && !PREFERS_REDUCED_MOTION) {
-      track.style.height = ((items.length - 1) * vh) + 'px';
-    }
   }
-  function onScroll() {
-    target = scrollEl.scrollTop;
-    /* Where rAF never fires (preview harness), update synchronously */
-    if (!rafTicked) {
-      smooth = prevSmooth = target;
+
+  /* ── Gesture-stepped navigation: input never drives position directly ──
+     A wheel flick / swipe / arrow key requests one discrete warp jump;
+     warpTo tweens the virtual position, so erratic deltas from a buggy
+     wheel cannot jitter the tunnel and every journey docks dead-center
+     on a card. warpLock swallows inertia tails and repeat events. */
+  function warpTo(idx) {
+    idx = Math.max(0, Math.min(items.length - 1, idx));
+    if (idx === curIdx && pos.p === idx) return;
+    curIdx = idx;
+    const dist = Math.abs(pos.p - idx);
+    const dur = Math.min(0.9 + 0.25 * dist, 1.8); // rail jumps fly farther, a bit longer
+    warpLock = performance.now() + dur * 850 + 120;
+    if (hasGsap && !PREFERS_REDUCED_MOTION) {
+      gsap.killTweensOf(pos);
+      gsap.to(pos, { p: idx, duration: dur, ease: 'power2.inOut', onUpdate: layoutItems });
+    } else {
+      pos.p = idx;
       layoutItems();
     }
+  }
+  function onWheel(e) {
+    if (overlay.classList.contains('nv-static')) return; // native column scroll
+    e.preventDefault();
+    const now = performance.now();
+    if (now < warpLock) return;
+    if (now - lastWheelT > 200) acc = 0; // stale gesture, restart accumulator
+    lastWheelT = now;
+    acc += e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * vh : e.deltaY;
+    if (Math.abs(acc) > 60) {
+      warpTo(curIdx + Math.sign(acc));
+      acc = 0;
+    }
+  }
+  function onTouchStart(e) {
+    touchY = touchLastY = e.touches[0].clientY;
+  }
+  function onTouchMove(e) {
+    if (overlay.classList.contains('nv-static')) return;
+    e.preventDefault();
+    touchLastY = e.touches[0].clientY;
+  }
+  function onTouchEnd() {
+    if (touchY === null || overlay.classList.contains('nv-static')) { touchY = null; return; }
+    const dy = touchY - touchLastY; // positive = swiped up = travel forward
+    touchY = null;
+    if (Math.abs(dy) > 50 && performance.now() >= warpLock) warpTo(curIdx + Math.sign(dy));
   }
   function onMouse(e) {
     mouse.tx = (e.clientX / overlay.clientWidth) * 2 - 1;
@@ -3012,6 +3050,18 @@ function initNebulaView() {
   function onKeydown(e) {
     if (!isOpen) return;
     if (e.key === 'Escape') { close(); return; }
+    if (!overlay.classList.contains('nv-static')) {
+      const step =
+        (e.key === 'ArrowDown' || e.key === 'PageDown') ? 1 :
+        (e.key === 'ArrowUp' || e.key === 'PageUp') ? -1 : 0;
+      if (step) {
+        e.preventDefault();
+        if (performance.now() >= warpLock) warpTo(curIdx + step);
+        return;
+      }
+      if (e.key === 'Home') { e.preventDefault(); warpTo(0); return; }
+      if (e.key === 'End') { e.preventDefault(); warpTo(items.length - 1); return; }
+    }
     if (e.key === 'Tab') { // minimal focus trap: the overlay covers the whole app
       const focusables = [...overlay.querySelectorAll('button, a[href], [tabindex="0"]')]
         .filter(el => el.offsetParent !== null || el === scrollEl);
@@ -3032,11 +3082,14 @@ function initNebulaView() {
     document.body.classList.add('nv-open');
     sizeCanvas();
     measure();
-    scrollEl.scrollTop = 0;
-    target = smooth = prevSmooth = 0;
+    scrollEl.scrollTop = 0; // static-mode column starts at the top
+    pos.p = 0; curIdx = 0; acc = 0; prevPx = 0;
     layoutItems();
 
-    scrollEl.addEventListener('scroll', onScroll, { passive: true });
+    overlay.addEventListener('wheel', onWheel, { passive: false });
+    overlay.addEventListener('touchstart', onTouchStart, { passive: true });
+    overlay.addEventListener('touchmove', onTouchMove, { passive: false });
+    overlay.addEventListener('touchend', onTouchEnd);
     window.addEventListener('resize', onResize);
     if (hoverFine) overlay.addEventListener('mousemove', onMouse);
     document.addEventListener('keydown', onKeydown);
@@ -3057,7 +3110,11 @@ function initNebulaView() {
     overlay.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('nv-open');
     if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
-    scrollEl.removeEventListener('scroll', onScroll);
+    if (hasGsap) gsap.killTweensOf(pos);
+    overlay.removeEventListener('wheel', onWheel);
+    overlay.removeEventListener('touchstart', onTouchStart);
+    overlay.removeEventListener('touchmove', onTouchMove);
+    overlay.removeEventListener('touchend', onTouchEnd);
     window.removeEventListener('resize', onResize);
     overlay.removeEventListener('mousemove', onMouse);
     document.removeEventListener('keydown', onKeydown);

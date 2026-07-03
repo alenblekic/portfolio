@@ -2469,7 +2469,9 @@ function initNebulaView() {
   let curIdx = 0;         // current stop index
   let acc = 0;            // wheel gesture accumulator
   let warpLock = 0;       // input swallowed until this timestamp (ms)
+  let wheelArmed = true;  // false after a warp until a new gesture begins
   let lastWheelT = 0;
+  let lastWheelD = 0;
   let touchY = null, touchLastY = null;
   let prevPx = 0;
   let vel = 0;            // px/frame — drives the star warp streaks
@@ -2533,8 +2535,9 @@ function initNebulaView() {
   });
   let meteors = [];
   let nextMeteor = 0;
-  let burst = null;   // { born } — light-gate fired when crossing into a section
-  let lastStop = 0;   // Math.round(P), tracked in loop()
+  let burst = null;    // { born } — light-gate fired when crossing into a section
+  let lastStop = 0;    // Math.round(P), tracked in loop()
+  let lastBurstT = -1; // debounce: boundary oscillation must not spam rings
 
   function sizeCanvas() {
     const dpr = Math.min(window.devicePixelRatio || 1, isSmall ? 1.5 : 2);
@@ -2593,7 +2596,7 @@ function initNebulaView() {
     for (const s of stars) {
       s.z -= (vel * 0.00045 + 0.00028 + burstK * 0.004) * s.sp;
       if (s.z < 0.06) { s.z += 1.06; s.x = Math.random() * 2 - 1; s.y = Math.random() * 2 - 1; s.px = null; }
-      else if (s.z > 1.12) { s.z -= 1.06; s.px = null; }
+      else if (s.z > 1.12) { s.z -= 1.06; s.x = Math.random() * 2 - 1; s.y = Math.random() * 2 - 1; s.px = null; }
       const rx = s.x * rollC - s.y * rollS;
       const ry = s.x * rollS + s.y * rollC;
       const par = 1 - s.z; // nearer stars react more to the mouse
@@ -2602,7 +2605,11 @@ function initNebulaView() {
       if (sx < -40 || sx > W + 40 || sy < -40 || sy > H + 40) { s.px = sx; s.py = sy; continue; }
       const tw = 0.5 + 0.5 * Math.sin(t * s.ts + s.to);
       const size = Math.min(3, (s.r / s.z) * 0.9);
-      ctx.globalAlpha = (0.25 + tw * 0.75) * Math.min(1, (1.15 - s.z) * 2.5);
+      /* Fade at both depth ends: far stars ease in, near-camera stars ease
+         out — so recycled stars never pop into view when scrolling back */
+      ctx.globalAlpha = (0.25 + tw * 0.75)
+        * Math.min(1, (1.15 - s.z) * 2.5)
+        * Math.min(1, (s.z - 0.06) * 8);
       const col = s.col;
       if (warping && s.px !== null) {
         ctx.strokeStyle = col;
@@ -2685,7 +2692,7 @@ function initNebulaView() {
       td,
       x: Math.sin(i * 2.1) * vw * 0.09 * far,
       y: Math.cos(i * 1.3) * vh * 0.05 * far,
-      z: Math.min(td < 0 ? td * 1500 : td * 1600, 1000),
+      z: Math.min(td < 0 ? td * 1500 : td * 1600, 900), // cap < perspective: no giant ghosts
     };
   }
 
@@ -2695,11 +2702,11 @@ function initNebulaView() {
     if (PREFERS_REDUCED_MOTION || !vh) return;
     const P = pos.p + intro.v;
     items.forEach((item, i) => {
-      const pos = tunnelPos(i, P);
-      const td = pos.td;
+      const tp = tunnelPos(i, P);
+      const td = tp.td;
       let o;
       if (td < -1.9) o = Math.max(0, (td + 2.6) / 0.7);
-      else if (td > 0.35) o = Math.max(0, 1 - (td - 0.35) / 0.4);
+      else if (td > 0.3) o = Math.max(0, 1 - (td - 0.3) / 0.25); // passed cards exit fast
       else o = 1;
       if (o <= 0.01) {
         item.style.visibility = 'hidden';
@@ -2713,7 +2720,7 @@ function initNebulaView() {
       item.style.pointerEvents = Math.abs(td) < 0.6 ? 'auto' : 'none';
       item.classList.toggle('nv-front', Math.abs(td) < 0.12);
       item.style.transform =
-        `translate(-50%, -50%) translate3d(${pos.x.toFixed(1)}px, ${pos.y.toFixed(1)}px, ${pos.z.toFixed(1)}px)`;
+        `translate(-50%, -50%) translate3d(${tp.x.toFixed(1)}px, ${tp.y.toFixed(1)}px, ${tp.z.toFixed(1)}px)`;
     });
     /* Progress rail: light the dot for the nearest stop */
     const active = Math.max(0, Math.min(items.length - 1, Math.round(P)));
@@ -2729,10 +2736,14 @@ function initNebulaView() {
     const px = pos.p * vh; // velocity in px/frame keeps the canvas effect scales
     vel = px - prevPx;
     prevPx = px;
-    /* Fire the light-gate when the nearest stop changes (not during the intro) */
+    /* Fire the light-gate when the nearest stop changes (not during the
+       intro, and at most one ring per 0.6s when reversing over a boundary) */
     const stop = Math.round(pos.p + intro.v);
     if (stop !== lastStop) {
-      if (intro.v === 0) burst = { born: t };
+      if (intro.v === 0 && t - lastBurstT > 0.6) {
+        burst = { born: t };
+        lastBurstT = t;
+      }
       lastStop = stop;
     }
     drawFrame(t);
@@ -3015,11 +3026,21 @@ function initNebulaView() {
     if (overlay.classList.contains('nv-static')) return; // native column scroll
     e.preventDefault();
     const now = performance.now();
-    if (now < warpLock) return;
-    if (now - lastWheelT > 200) acc = 0; // stale gesture, restart accumulator
+    const d = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * vh : e.deltaY;
+    /* Gesture segmentation: a warp disarms the wheel, and only a real
+       gesture boundary re-arms it — a pause since the last event, or a
+       decisive direction flip. Inertia tails and buggy-wheel repeats are
+       neither, so the gesture that caused a jump can never re-fire. */
+    if (now - lastWheelT > 160 || (Math.sign(d) !== Math.sign(lastWheelD) && Math.abs(d) >= 100)) {
+      wheelArmed = true;
+      acc = 0;
+    }
     lastWheelT = now;
-    acc += e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * vh : e.deltaY;
+    lastWheelD = d;
+    if (!wheelArmed || now < warpLock) return;
+    acc += d;
     if (Math.abs(acc) > 60) {
+      wheelArmed = false;
       warpTo(curIdx + Math.sign(acc));
       acc = 0;
     }

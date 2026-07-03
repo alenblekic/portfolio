@@ -2500,22 +2500,47 @@ function initNebulaView() {
     makeCloudSprite(60, 80, 170),   // deep indigo
     makeCloudSprite(35, 45, 110),   // cold violet-blue
     makeCloudSprite(90, 140, 200),  // cyan haze
+    makeCloudSprite(45, 130, 145),  // deep teal
+    makeCloudSprite(110, 70, 185),  // violet-magenta
     makeCloudSprite(217, 119, 87),  // coral accent
   ];
   /* Clouds orbit the screen center as you travel (ring placement) */
-  const CLOUDS = (isSmall ? 4 : 7);
+  const CLOUDS = (isSmall ? 6 : 10);
   const clouds = Array.from({ length: CLOUDS }, (_, i) => ({
-    sprite: sprites[i % 4],
+    sprite: sprites[i % sprites.length],
     ang: Math.random() * Math.PI * 2,   // position on the ring
     dist: 0.15 + Math.random() * 0.6,   // ring radius (fraction of focal)
     scale: 1.2 + Math.random() * 2,
     spin: 0.08 + Math.random() * 0.12,  // orbit per unit of travel
     drift: 0.015 + Math.random() * 0.035,
     depth: 0.2 + Math.random() * 0.5,
-    alpha: 0.06 + Math.random() * 0.09,
+    alpha: 0.1 + Math.random() * 0.13,
   }));
+  /* Galactic dust band: one wide pre-rendered haze streak through center,
+     rolling slowly with the galaxy. Light colors at low alpha only — it
+     sits behind the stars and must never darken or occlude them. */
+  function makeBandSprite() {
+    const w = 1024, h = 512;
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const cc = c.getContext('2d');
+    cc.scale(1, 0.32); // squash radials into an elongated band
+    const blob = (x, r, rgb, a) => {
+      const g = cc.createRadialGradient(x, h / 0.64, 0, x, h / 0.64, r);
+      g.addColorStop(0, `rgba(${rgb},${a})`);
+      g.addColorStop(1, `rgba(${rgb},0)`);
+      cc.fillStyle = g;
+      cc.fillRect(x - r, h / 0.64 - r, r * 2, r * 2);
+    };
+    blob(w * 0.5, w * 0.5, '70,95,190', 0.5);    // indigo spine
+    blob(w * 0.32, w * 0.22, '95,150,210', 0.4); // cyan knot
+    blob(w * 0.68, w * 0.2, '120,80,190', 0.35); // violet knot
+    blob(w * 0.55, w * 0.13, '224,140,105', 0.3); // faint coral ember
+    return c;
+  }
+  const bandSprite = makeBandSprite();
   /* True 3D starfield: z shrinks as you scroll forward (zoom parallax) */
-  const STARS = isSmall ? 380 : 900;
+  const STARS = isSmall ? 460 : 1150;
   const heroGlow = makeCloudSprite(200, 215, 255); // soft halo under hero stars
   const coreGlow = makeCloudSprite(217, 119, 87);  // velocity-reactive tunnel core
   const stars = Array.from({ length: STARS }, () => {
@@ -2556,6 +2581,17 @@ function initNebulaView() {
     mouse.y += (mouse.ty - mouse.y) * 0.06;
     ctx.clearRect(0, 0, W, H);
 
+    const roll = P * 0.06 + t * 0.008; // visible idle revolve, rolls with travel
+
+    /* Dust band first: the deepest layer, everything else draws over it */
+    ctx.save();
+    ctx.translate(cx + mouse.x * 16, cy + mouse.y * 12);
+    ctx.rotate(-0.5 + roll * 0.6);
+    const bw = Math.max(W, H) * 2.2;
+    ctx.globalAlpha = 0.16;
+    ctx.drawImage(bandSprite, -bw / 2, -bw / 4, bw, bw / 2);
+    ctx.restore();
+
     for (const cl of clouds) {
       const a = cl.ang + P * cl.spin + t * cl.drift;
       const d = cl.dist * f * 1.6;
@@ -2566,12 +2602,15 @@ function initNebulaView() {
       ctx.drawImage(cl.sprite, x, y, size, size);
     }
 
-    /* Light-gate burst (section crossings) + velocity core glow */
-    let burstK = 0;
+    /* Light-gate burst (section crossings) + velocity core glow.
+       age clamps at 0: the ignition stamps born with performance.now(),
+       which can lead the rAF timestamp by a frame — a negative age fed
+       the ring a negative arc radius, which throws and kills the loop. */
+    let burstK = 0, burstAge = 0;
     if (burst) {
-      const age = t - burst.born;
-      if (age > 0.7) burst = null;
-      else burstK = 1 - age / 0.7;
+      burstAge = Math.max(0, t - burst.born);
+      if (burstAge > 0.7) burst = null;
+      else burstK = 1 - burstAge / 0.7;
     }
     const coreA = Math.min(0.5,
       Math.min(0.16, Math.abs(vel) * 0.0025) + burstK * 0.22 + ignite.k * 0.3);
@@ -2581,7 +2620,7 @@ function initNebulaView() {
       ctx.drawImage(coreGlow, cx - cs / 2, cy - cs / 2, cs, cs);
     }
     if (burst) {
-      const k = 1 - Math.pow(1 - (t - burst.born) / 0.7, 3); // ease-out expansion
+      const k = 1 - Math.pow(1 - burstAge / 0.7, 3); // ease-out expansion
       const rr = k * Math.min(W, H) * 0.75;
       ctx.strokeStyle = '#E8A188';
       ctx.globalAlpha = burstK * 0.25;
@@ -2593,12 +2632,11 @@ function initNebulaView() {
     }
 
     const warping = Math.abs(vel) > 8 || ignite.k > 0.2;
-    const roll = P * 0.06 + t * 0.008; // visible idle revolve, rolls with travel
     const rollC = Math.cos(roll), rollS = Math.sin(roll);
     for (const s of stars) {
-      /* Baseline 0.0012: the field always streams gently toward the camera,
+      /* Baseline 0.0016: the field always streams gently toward the camera,
          so the stars stay visibly alive between warps, not just during them */
-      s.z -= (vel * 0.00045 + 0.0012 + burstK * 0.004 + ignite.k * 0.014) * s.sp;
+      s.z -= (vel * 0.00045 + 0.0016 + burstK * 0.004 + ignite.k * 0.014) * s.sp;
       if (s.z < 0.06) { s.z += 1.06; s.x = Math.random() * 2 - 1; s.y = Math.random() * 2 - 1; s.px = null; }
       else if (s.z > 1.12) { s.z -= 1.06; s.x = Math.random() * 2 - 1; s.y = Math.random() * 2 - 1; s.px = null; }
       const rx = s.x * rollC - s.y * rollS;
@@ -2612,7 +2650,7 @@ function initNebulaView() {
       /* Fade at both depth ends: far stars ease in, near-camera stars ease
          out — so recycled stars never pop into view when scrolling back */
       ctx.globalAlpha = (0.25 + tw * 0.75)
-        * Math.min(1, (1.15 - s.z) * 2.5)
+        * Math.min(1, (1.17 - s.z) * 2.8)
         * Math.min(1, (s.z - 0.06) * 8);
       const col = s.col;
       if (warping && s.px !== null) {
@@ -2653,12 +2691,12 @@ function initNebulaView() {
           born: t,
         });
         meteors.push(spawn());
-        if (Math.random() < 0.3) { // occasional twin, slightly delayed
+        if (Math.random() < 0.35) { // occasional twin, slightly delayed
           const twin = spawn();
           twin.born = t + 0.08;
           meteors.push(twin);
         }
-        nextMeteor = t + 2.5 + Math.random() * 4;
+        nextMeteor = t + 1.8 + Math.random() * 3.2;
       }
       for (let i = meteors.length - 1; i >= 0; i--) {
         const m = meteors[i];

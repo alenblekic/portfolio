@@ -2891,6 +2891,35 @@ body.nv-open { overflow: hidden; }
 }
 .nv-rail-dot:hover::after { background: rgba(255,255,255,0.7); }
 .nv-rail-dot:focus-visible { outline: 1px solid var(--red); border-radius: 50%; }
+/* Label tooltip: the dot's aria-label, revealed on hover/focus */
+.nv-rail-dot::before {
+  content: attr(aria-label);
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%) translateX(6px);
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--white);
+  background: rgba(10,13,26,0.85);
+  border: 1px solid rgba(160,190,255,0.14);
+  border-radius: 6px;
+  padding: 5px 10px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition), transform var(--transition);
+}
+.nv-rail-dot:hover::before,
+.nv-rail-dot:focus-visible::before {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
 .nv-rail-dot.on::after {
   background: var(--red);
   transform: translate(-50%, -50%) scale(1.6);
@@ -2952,6 +2981,23 @@ body.nv-open { overflow: hidden; }
 @keyframes nv-hint-drop {
   0%   { top: -40%; }
   70%, 100% { top: 110%; }
+}
+.nv-travel-hint {
+  margin-top: 14px;
+  font-size: 0.62rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--grey);
+}
+
+/* Docked card breathes gently during the dwell. Animates the `translate`
+   property so it composes with (not fights) the GSAP tilt transform. */
+@keyframes nv-hover-drift {
+  from { translate: 0 -4px; }
+  to   { translate: 0 4px; }
+}
+.nv-item.nv-front .nv-item-card {
+  animation: nv-hover-drift 5.5s ease-in-out infinite alternate;
 }
 
 /* ── Beat 2: about ── */
@@ -3077,6 +3123,25 @@ body.nv-open { overflow: hidden; }
   background: rgba(217,119,87,0.08);
 }
 .nv-card-tags .tag-ico { width: 11px; height: 11px; }
+.nv-card-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 18px;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-decoration: none;
+  transition: text-shadow var(--transition), gap var(--transition);
+}
+.nv-card-link svg { width: 11px; height: 11px; }
+.nv-card-link:hover {
+  text-shadow: 0 0 14px color-mix(in srgb, var(--accent) 65%, transparent);
+  gap: 9px;
+}
 
 /* ── Beat 4: toolkit constellation ──
    Core row of 4 featured tools (brand-glow pulse) over a drifting chip
@@ -3215,6 +3280,20 @@ body.nv-open { overflow: hidden; }
   color: var(--grey);
   letter-spacing: 0.04em;
 }
+/* Live status marker on the in-progress cert */
+.nv-pulse-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: #F5C542;
+  animation: nv-pulse 2s ease-in-out infinite;
+}
+@keyframes nv-pulse {
+  0%, 100% { opacity: 0.45; box-shadow: 0 0 0 rgba(245,197,66,0); }
+  50%      { opacity: 1; box-shadow: 0 0 10px rgba(245,197,66,0.55); }
+}
 
 /* ── Beat 6: contact ── */
 .nv-contact-heading {
@@ -3340,5 +3419,6 @@ body.nv-open { overflow: hidden; }
   .nv-scroll-hint span, .nv-chip { animation: none; }
   .nv-core-tool { animation: none; }
   .nv-core-tool, .nv-chip-in { transition: none; }
+  .nv-item.nv-front .nv-item-card, .nv-pulse-dot { animation: none; }
   .nv-ignition, .nv-flash { display: none; }
 }

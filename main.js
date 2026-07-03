@@ -2518,6 +2518,41 @@ function initNebulaView() {
   const STARS = isSmall ? 380 : 900;
   const heroGlow = makeCloudSprite(200, 215, 255); // soft halo under hero stars
   const coreGlow = makeCloudSprite(217, 119, 87);  // velocity-reactive tunnel core
+
+  /* Distant ringed planet: pre-rendered once, drifts with travel (deep parallax) */
+  function makePlanetSprite() {
+    const S = 520;
+    const c = document.createElement('canvas');
+    c.width = c.height = S;
+    const cc = c.getContext('2d');
+    const R = S * 0.25;
+    cc.translate(S / 2, S / 2);
+    cc.rotate(-0.32);
+    const ring = (a0, a1) => {
+      cc.beginPath();
+      cc.ellipse(0, 0, R * 1.85, R * 0.48, 0, a0, a1);
+      cc.strokeStyle = 'rgba(170,200,255,0.5)';
+      cc.lineWidth = 3;
+      cc.stroke();
+      cc.beginPath();
+      cc.ellipse(0, 0, R * 1.62, R * 0.42, 0, a0, a1);
+      cc.strokeStyle = 'rgba(170,200,255,0.22)';
+      cc.lineWidth = 7;
+      cc.stroke();
+    };
+    ring(Math.PI, Math.PI * 2); // back half, partly hidden by the sphere
+    const g = cc.createRadialGradient(-R * 0.45, -R * 0.5, R * 0.1, 0, 0, R * 1.05);
+    g.addColorStop(0, 'rgba(150,180,235,0.95)');
+    g.addColorStop(0.55, 'rgba(70,95,180,0.92)');
+    g.addColorStop(1, 'rgba(10,14,32,0.95)');
+    cc.beginPath();
+    cc.arc(0, 0, R, 0, Math.PI * 2);
+    cc.fillStyle = g;
+    cc.fill();
+    ring(0, Math.PI); // front half passes over the sphere
+    return c;
+  }
+  const planet = makePlanetSprite();
   const stars = Array.from({ length: STARS }, () => {
     const hero = Math.random() < 0.06;
     const cr = Math.random();
@@ -2565,6 +2600,13 @@ function initNebulaView() {
       ctx.globalAlpha = cl.alpha;
       ctx.drawImage(cl.sprite, x, y, size, size);
     }
+
+    /* Distant ringed planet: glides slowly against the star rush */
+    const plS = Math.min(W, H) * 0.55;
+    const plX = W * 0.80 - P * W * 0.04 + mouse.x * 12;
+    const plY = H * 0.28 + Math.sin(P * 0.45) * H * 0.05 + mouse.y * 9;
+    ctx.globalAlpha = 0.45;
+    ctx.drawImage(planet, plX - plS / 2, plY - plS / 2, plS, plS);
 
     /* Light-gate burst (section crossings) + velocity core glow */
     let burstK = 0;
@@ -2771,11 +2813,16 @@ function initNebulaView() {
         const tags = (typeof tagHTML === 'function')
           ? p.tags.map(tagHTML).join('')
           : p.tags.map(tg => `<span class="tag">${tg}</span>`).join('');
+        const live = p.link
+          ? `<a class="nv-card-link" href="${p.link}" target="_blank" rel="noopener noreferrer">View Live` +
+            `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg></a>`
+          : '';
         holder.innerHTML =
           `<span class="nv-card-counter">${p.counter}</span>` +
           `<h4 class="nv-card-name">${p.name}</h4>` +
           `<p class="nv-card-desc">${p.desc}</p>` +
-          `<div class="nv-card-tags">${tags}</div>`;
+          `<div class="nv-card-tags">${tags}</div>` +
+          live;
       });
     }
 
@@ -2866,7 +2913,8 @@ function initNebulaView() {
         if (p) { // PROJECTS[].name may contain HTML; aria-labels need plain text
           const tmp = document.createElement('div');
           tmp.innerHTML = p.name;
-          label = tmp.textContent.trim();
+          // Short form for the rail tooltip: drop subtitle/parenthetical tails
+          label = tmp.textContent.split('—')[0].split('(')[0].trim();
         }
       }
       const dot = document.createElement('button');

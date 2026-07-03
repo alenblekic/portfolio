@@ -2836,12 +2836,72 @@ function initNebulaView() {
           ? p.tags.map(tagHTML).join('')
           : p.tags.map(tg => `<span class="tag">${tg}</span>`).join('');
         holder.innerHTML =
-          `<span class="nv-card-counter">${p.counter}</span>` +
-          `<h4 class="nv-card-name">${p.name}</h4>` +
-          `<p class="nv-card-desc">${p.desc}</p>` +
-          `<div class="nv-card-tags">${tags}</div>`;
+          `<div class="nv-ring-sys nv-proj-planet">` +
+            `<div class="nv-ring nv-ring-back"><div class="nv-ring-fill"></div></div>` +
+            `<div class="nv-planet"></div>` +
+            `<div class="nv-ring nv-ring-front"><div class="nv-ring-fill"></div></div>` +
+          `</div>` +
+          `<div class="nv-card-readout">` +
+            `<span class="nv-card-counter">${p.counter}</span>` +
+            `<h4 class="nv-card-name">${p.name}</h4>` +
+            `<p class="nv-card-desc">${p.desc}</p>` +
+            `<div class="nv-card-tags">${tags}</div>` +
+          `</div>`;
       });
     }
+
+    /* About stats become planets orbiting the bio-sun: wrap each existing
+       .nv-stat in an orbit arm on a shared scaffold. CSS positions them on
+       tilted rings and revolves them on .nv-front; static mode degrades the
+       scaffold back to a flat row (see .nv-static overrides). */
+    const statsWrap = overlay.querySelector('.nv-item-about .nv-stats');
+    if (statsWrap) {
+      const stats = [...statsWrap.querySelectorAll('.nv-stat')];
+      const orbit = document.createElement('div');
+      orbit.className = 'nv-stat-system';
+      const sun = document.createElement('div');
+      sun.className = 'nv-sun';
+      orbit.appendChild(sun);
+      const ORBITS = [
+        { r: 128, period: 26, tilt: 14,  phase: 0 },
+        { r: 176, period: 34, tilt: -12, phase: 130 },
+        { r: 150, period: 30, tilt: 20,  phase: 245 },
+      ];
+      stats.forEach((stat, i) => {
+        const o = ORBITS[i] || ORBITS[0];
+        stat.classList.add('hue-' + (i + 1)); // preserve per-stat hue (nth-child no longer applies)
+        const scaffold = document.createElement('div');
+        scaffold.className = 'nv-orbit';
+        scaffold.style.setProperty('--o-radius', o.r + 'px');
+        scaffold.style.setProperty('--o-period', o.period + 's');
+        scaffold.style.setProperty('--o-tilt', o.tilt + 'deg');
+        scaffold.style.setProperty('--o-phase', o.phase + 'deg');
+        const path = document.createElement('div');
+        path.className = 'nv-orbit-path';
+        const arm = document.createElement('div');
+        arm.className = 'nv-orbit-arm';
+        const body = document.createElement('div');
+        body.className = 'nv-orbit-body';
+        body.appendChild(stat); // re-parent the existing stat
+        arm.appendChild(body);
+        scaffold.append(path, arm);
+        orbit.appendChild(scaffold);
+      });
+      statsWrap.appendChild(orbit);
+    }
+
+    /* Certs become glowing moons: prepend a moon orb to each plaque (its
+       inline --accent drives the hue). */
+    overlay.querySelectorAll('.nv-cert').forEach(cert => {
+      if (cert.querySelector('.nv-cert-moon')) return;
+      const text = document.createElement('div');
+      text.className = 'nv-cert-text';
+      while (cert.firstChild) text.appendChild(cert.firstChild); // move h4 + p in
+      const moon = document.createElement('span');
+      moon.className = 'nv-cert-moon';
+      moon.setAttribute('aria-hidden', 'true');
+      cert.append(moon, text);
+    });
 
     /* Toolkit constellation: 4 featured "core" tools with brand glows in a
        center row, every other chip drifting around them as a star cloud.
@@ -2904,7 +2964,10 @@ function initNebulaView() {
         cloud.appendChild(chip);
         cloudCount++;
       });
-      constellation.append(core, cloud);
+      const star = document.createElement('div');
+      star.className = 'nv-core-star';
+      star.setAttribute('aria-hidden', 'true');
+      constellation.append(star, core, cloud);
     }
 
     /* Wrap the big name's letters for the hover scatter + arrival ripple */
@@ -2912,6 +2975,44 @@ function initNebulaView() {
     if (name) {
       name.innerHTML = name.textContent.split('')
         .map((ch, i) => `<span class="nv-letter" style="--i:${i}">${ch}</span>`).join('');
+    }
+
+    /* Name is the system's star: inject faint rings with tiny orbiting
+       planet dots behind the ALEN wordmark (coral stays on the name). */
+    const nameCard = overlay.querySelector('.nv-item-name .nv-item-card');
+    if (nameCard && !nameCard.querySelector('.nv-name-orbits')) {
+      const sys = document.createElement('div');
+      sys.className = 'nv-name-orbits';
+      sys.setAttribute('aria-hidden', 'true');
+      const DOTS = [
+        { r: 300, period: 40, tilt: 12,  phase: 20,  hue: '#8B7CF6', size: 14 },
+        { r: 420, period: 58, tilt: -9,  phase: 200, hue: '#4EC9E8', size: 11 },
+        { r: 360, period: 48, tilt: 18,  phase: 120, hue: '#7FA7FF', size: 9 },
+      ];
+      DOTS.forEach(d => {
+        const scaffold = document.createElement('div');
+        scaffold.className = 'nv-orbit';
+        scaffold.style.setProperty('--o-radius', d.r + 'px');
+        scaffold.style.setProperty('--o-period', d.period + 's');
+        scaffold.style.setProperty('--o-tilt', d.tilt + 'deg');
+        scaffold.style.setProperty('--o-phase', d.phase + 'deg');
+        const path = document.createElement('div');
+        path.className = 'nv-orbit-path';
+        const arm = document.createElement('div');
+        arm.className = 'nv-orbit-arm';
+        const body = document.createElement('div');
+        body.className = 'nv-orbit-body';
+        const dot = document.createElement('div');
+        dot.className = 'nv-planet nv-name-dot';
+        dot.style.setProperty('--p-size', d.size + 'px');
+        dot.style.setProperty('--p-hue', d.hue);
+        dot.style.setProperty('--p-hue2', d.hue);
+        body.appendChild(dot);
+        arm.appendChild(body);
+        scaffold.append(path, arm);
+        sys.appendChild(scaffold);
+      });
+      nameCard.insertBefore(sys, nameCard.firstChild);
     }
 
     /* Progress rail: one clickable dot per stop (labels are aria-only) */

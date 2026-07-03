@@ -2543,6 +2543,20 @@ function initNebulaView() {
   const STARS = isSmall ? 460 : 1150;
   const heroGlow = makeCloudSprite(200, 215, 255); // soft halo under hero stars
   const coreGlow = makeCloudSprite(217, 119, 87);  // velocity-reactive tunnel core
+  /* Per-stop hue for the light-gate burst: the ring + a tinted core sprite
+     take the arriving card's color. Project slots (2-5) are filled from
+     PROJECTS[].accent in buildItems(); null slots fall back to coral. */
+  const STOP_HUES = ['#D97757', '#4EC9E8', null, null, null, null, '#8B7CF6', '#7FA7FF', '#D97757'];
+  const hueSprites = new Map();
+  function hueGlow(hex) {
+    if (!hex) return coreGlow;
+    if (hueSprites.has(hex)) return hueSprites.get(hex);
+    const h = hex.replace('#', '');
+    const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+    const sprite = makeCloudSprite(r, g, b);
+    hueSprites.set(hex, sprite);
+    return sprite;
+  }
   const stars = Array.from({ length: STARS }, () => {
     const hero = Math.random() < 0.06;
     const cr = Math.random();
@@ -2612,17 +2626,23 @@ function initNebulaView() {
       if (burstAge > 0.7) burst = null;
       else burstK = 1 - burstAge / 0.7;
     }
+    /* Coral core stays coral (velocity + ignition); the burst adds a
+       separate tinted glow in the arriving card's hue on top. */
+    const cs = Math.min(W, H) * 0.95;
     const coreA = Math.min(0.5,
-      Math.min(0.16, Math.abs(vel) * 0.0025) + burstK * 0.22 + ignite.k * 0.3);
+      Math.min(0.16, Math.abs(vel) * 0.0025) + ignite.k * 0.3);
     if (coreA > 0.005) {
-      const cs = Math.min(W, H) * 0.95;
       ctx.globalAlpha = coreA;
       ctx.drawImage(coreGlow, cx - cs / 2, cy - cs / 2, cs, cs);
+    }
+    if (burstK > 0.005) {
+      ctx.globalAlpha = burstK * 0.22;
+      ctx.drawImage(hueGlow(burst && burst.col), cx - cs / 2, cy - cs / 2, cs, cs);
     }
     if (burst) {
       const k = 1 - Math.pow(1 - burstAge / 0.7, 3); // ease-out expansion
       const rr = k * Math.min(W, H) * 0.75;
-      ctx.strokeStyle = '#E8A188';
+      ctx.strokeStyle = burst.col || '#E8A188';
       ctx.globalAlpha = burstK * 0.25;
       ctx.lineWidth = 14;
       ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI * 2); ctx.stroke();
@@ -2783,7 +2803,8 @@ function initNebulaView() {
     const stop = Math.round(pos.p + intro.v);
     if (stop !== lastStop) {
       if (intro.v === 0 && t - lastBurstT > 0.6) {
-        burst = { born: t };
+        const hue = STOP_HUES[Math.max(0, Math.min(STOP_HUES.length - 1, stop))];
+        burst = { born: t, col: hue || '#E8A188' };
         lastBurstT = t;
       }
       lastStop = stop;
@@ -2803,11 +2824,14 @@ function initNebulaView() {
 
     if (typeof PROJECTS !== 'undefined') {
       overlay.querySelectorAll('.nv-item-project').forEach(item => {
-        const p = PROJECTS[parseInt(item.dataset.project, 10) || 0];
+        const di = parseInt(item.dataset.project, 10) || 0;
+        const p = PROJECTS[di];
         const holder = item.querySelector('.nv-item-card');
         if (!p || !holder) return;
         holder.classList.add('nv-card');
         applyAccent(holder, p);
+        if (p.accent) STOP_HUES[2 + di] = p.accent; // projects are stops 2-5
+
         const tags = (typeof tagHTML === 'function')
           ? p.tags.map(tagHTML).join('')
           : p.tags.map(tg => `<span class="tag">${tg}</span>`).join('');
@@ -2883,11 +2907,11 @@ function initNebulaView() {
       constellation.append(core, cloud);
     }
 
-    /* Wrap the big name's letters for the hover scatter */
+    /* Wrap the big name's letters for the hover scatter + arrival ripple */
     const name = overlay.querySelector('.nv-name');
     if (name) {
       name.innerHTML = name.textContent.split('')
-        .map(ch => `<span class="nv-letter">${ch}</span>`).join('');
+        .map((ch, i) => `<span class="nv-letter" style="--i:${i}">${ch}</span>`).join('');
     }
 
     /* Progress rail: one clickable dot per stop (labels are aria-only) */

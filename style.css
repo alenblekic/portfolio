@@ -2737,6 +2737,23 @@ body.nv-open { overflow: hidden; }
   pointer-events: auto;
 }
 
+/* ── Aurora hue scheme: each card family carries a two-stop hue pair
+   (--nv-a1 → --nv-a2). Coral stays reserved for the brand anchors:
+   CTAs, progress rail, ALEN glow, bio strong, ignition/flash. ── */
+@property --nv-ang { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+.nv-item              { --nv-a1: #8B7CF6; --nv-a2: #4EC9E8; } /* indigo → cyan */
+.nv-item-name,
+.nv-item-contact      { --nv-a1: var(--red); --nv-a2: #F0A88F; } /* brand anchors */
+.nv-item-about        { --nv-a1: #4EC9E8; --nv-a2: #2DD4BF; }
+.nv-item-toolkit      { --nv-a1: #8B7CF6; --nv-a2: #6D5EF6; }
+.nv-item-certs        { --nv-a1: #7FA7FF; --nv-a2: #8B7CF6; }
+/* Projects + certs inherit their own accents (inline / via applyAccent) */
+.nv-item-project .nv-item-card { --nv-a1: var(--accent); --nv-a2: var(--accent-2, var(--accent)); }
+.nv-cert              { --nv-a1: var(--accent); --nv-a2: color-mix(in srgb, var(--accent) 55%, #8B7CF6); }
+.nv-stat:nth-child(1) { --nv-a1: #5BC8F5; --nv-a2: #7FA7FF; }
+.nv-stat:nth-child(2) { --nv-a1: #2DD4BF; --nv-a2: #5BC8F5; }
+.nv-stat:nth-child(3) { --nv-a1: #7CE0C3; --nv-a2: #2DD4BF; }
+
 .nv-canvas {
   position: absolute;
   inset: 0;
@@ -2919,6 +2936,15 @@ body.nv-open { overflow: hidden; }
   transition: text-shadow 0.3s ease;
 }
 .nv-letter.flare { text-shadow: 0 0 30px rgba(217,119,87,0.9); }
+/* Staggered one-shot glow ripple across ALEN as the name flies in */
+.nv-item-name.nv-front .nv-letter {
+  animation: nv-letter-ripple 0.7s ease-out calc(var(--i, 0) * 80ms) 1 both;
+}
+@keyframes nv-letter-ripple {
+  0%   { text-shadow: 0 0 40px rgba(217,119,87,0.45), 0 0 120px rgba(217,119,87,0.2); }
+  30%  { text-shadow: 0 0 34px rgba(217,119,87,0.95), 0 0 120px rgba(217,119,87,0.4); }
+  100% { text-shadow: 0 0 40px rgba(217,119,87,0.45), 0 0 120px rgba(217,119,87,0.2); }
+}
 .nv-sub {
   font-family: var(--font-display);
   font-size: clamp(1rem, 2.2vw, 1.4rem);
@@ -2971,29 +2997,63 @@ body.nv-open { overflow: hidden; }
   gap: clamp(16px, 3vw, 36px);
   flex-wrap: wrap;
 }
+/* Stats are satellites: each bobs on its own period (desynced via
+   negative delays) and carries a tilted orbital ring around its number.
+   The bob animation owns transform — hover feedback is glow-only. */
 .nv-stat {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 26px 34px;
   background: rgba(10,13,26,0.6);
-  border: 1px solid rgba(160,190,255,0.14);
+  border: 1px solid color-mix(in srgb, var(--nv-a1, #5BC8F5) 22%, transparent);
   border-radius: 12px;
   box-shadow: inset 0 1px 0 rgba(200,220,255,0.07), 0 30px 70px rgba(0,0,0,0.55);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+  transition: border-color var(--transition), box-shadow var(--transition);
+  animation: nv-stat-bob var(--nv-bdur, 6.4s) ease-in-out var(--nv-bdel, 0s) infinite alternate;
+}
+.nv-stat:nth-child(1) { --nv-bdur: 6.4s; --nv-bdel: 0s; }
+.nv-stat:nth-child(2) { --nv-bdur: 7.6s; --nv-bdel: -2.1s; }
+.nv-stat:nth-child(3) { --nv-bdur: 5.8s; --nv-bdel: -4s; }
+@keyframes nv-stat-bob {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-9px); }
 }
 .nv-stat:hover {
-  border-color: var(--border-red);
-  box-shadow: inset 0 1px 0 rgba(200,220,255,0.07), 0 30px 70px rgba(0,0,0,0.55), 0 0 24px rgba(217,119,87,0.18);
-  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--nv-a1) 55%, transparent);
+  box-shadow: inset 0 1px 0 rgba(200,220,255,0.07), 0 30px 70px rgba(0,0,0,0.55), 0 0 26px color-mix(in srgb, var(--nv-a1) 25%, transparent);
 }
+/* Orbital ring: thin tilted ellipse behind the number with a tiny moon */
+.nv-stat::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 28px;
+  width: 104px;
+  height: 30px;
+  margin-left: -52px;
+  border: 1px solid color-mix(in srgb, var(--nv-a1) 38%, transparent);
+  border-radius: 50%;
+  transform: rotate(-10deg);
+  background: radial-gradient(circle at 12% 28%,
+    var(--nv-a2) 0, var(--nv-a2) 2.2px, transparent 3px);
+  opacity: 0;
+  transition: opacity 0.45s ease 0.15s;
+  pointer-events: none;
+}
+.nv-item.nv-front .nv-stat::after,
+.nv-stat:hover::after { opacity: 1; }
 .nv-stat-num {
+  position: relative;
+  z-index: 1;
   font-family: var(--font-display);
   font-size: 2.1rem;
   font-weight: 700;
-  color: var(--red);
+  color: var(--nv-a1, var(--red));
+  text-shadow: 0 0 18px color-mix(in srgb, var(--nv-a1, var(--red)) 45%, transparent);
 }
 .nv-stat-label {
   font-size: 0.78rem;
@@ -3011,6 +3071,74 @@ body.nv-open { overflow: hidden; }
   text-shadow: 0 0 30px rgba(217,119,87,0.25);
 }
 
+/* ── Celestial chrome (shared): aurora comet-arc edge + nebula bloom.
+   Everything here is light-additive — the starfield must stay visible
+   through every layer (a dark planet sprite was reverted for occluding
+   stars; do not add dark or opaque decoration). ── */
+/* Comet-arc ring: a conic gradient masked to the card edge; one bright
+   a1→a2 arc sweeps the border. Spin budget: only the front project
+   card spins continuously; stats/certs spin on hover only. */
+.nv-card::before,
+.nv-stat::before,
+.nv-cert::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(from var(--nv-ang, 0deg),
+    transparent 0turn,
+    color-mix(in srgb, var(--nv-a1) 85%, transparent) 0.10turn,
+    color-mix(in srgb, var(--nv-a2) 80%, transparent) 0.18turn,
+    transparent 0.34turn);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity: 0.35;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+@keyframes nv-ring-spin { to { --nv-ang: 360deg; } }
+.nv-item.nv-front .nv-card::before {
+  opacity: 0.95;
+  animation: nv-ring-spin 9s linear infinite;
+}
+.nv-item.nv-front .nv-stat::before,
+.nv-item.nv-front .nv-cert::before { opacity: 0.8; }
+.nv-stat:hover::before,
+.nv-cert:hover::before {
+  opacity: 1;
+  animation: nv-ring-spin 9s linear infinite;
+}
+/* Nebula bloom: a soft halo behind each card in its own hue, swelling
+   on arrival. Peak alpha stays ≤20% and every stop is a light color. */
+.nv-item-card::after {
+  content: '';
+  position: absolute;
+  inset: -14% -20%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side,
+    color-mix(in srgb, var(--nv-a1) 20%, transparent),
+    color-mix(in srgb, var(--nv-a2) 9%, transparent) 45%,
+    transparent 72%);
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 0.5s ease, transform 0.5s ease; /* exit fade */
+  pointer-events: none;
+}
+.nv-item.nv-front .nv-item-card::after {
+  animation: nv-bloom-in 1.1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes nv-bloom-in {
+  0%   { opacity: 0;    transform: scale(0.85); }
+  55%  { opacity: 0.95; transform: scale(1.06); }
+  100% { opacity: 0.7;  transform: scale(1); }
+}
+/* ALEN's coral text-shadow already is the halo */
+.nv-item-name .nv-item-card::after { display: none; }
+
 /* ── Project cards (one per spiral item) ── */
 .nv-card {
   --accent: var(--red);
@@ -3020,7 +3148,7 @@ body.nv-open { overflow: hidden; }
   /* Faint accent atmosphere in the top-right corner, per project */
   background-image: radial-gradient(circle at 100% 0,
     color-mix(in srgb, var(--accent) 10%, transparent), transparent 55%);
-  border: 1px solid rgba(160,190,255,0.14);
+  border: 1px solid color-mix(in srgb, var(--nv-a1, #8B7CF6) 22%, transparent);
   border-radius: 14px;
   box-shadow: inset 0 1px 0 rgba(200,220,255,0.07), 0 30px 70px rgba(0,0,0,0.55);
   backdrop-filter: blur(8px);
@@ -3030,8 +3158,8 @@ body.nv-open { overflow: hidden; }
 }
 .nv-card:hover,
 .nv-item.nv-front .nv-card {
-  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
-  box-shadow: inset 0 1px 0 rgba(200,220,255,0.07), 0 30px 70px rgba(0,0,0,0.55), 0 0 34px color-mix(in srgb, var(--accent) 22%, transparent);
+  border-color: color-mix(in srgb, var(--nv-a1, var(--accent)) 50%, transparent);
+  box-shadow: inset 0 1px 0 rgba(200,220,255,0.07), 0 30px 70px rgba(0,0,0,0.55), 0 0 34px color-mix(in srgb, var(--nv-a1, var(--accent)) 22%, transparent);
 }
 .nv-card-counter {
   font-family: var(--font-display);
@@ -3176,8 +3304,9 @@ body.nv-open { overflow: hidden; }
   to   { transform: translate(var(--fx, 0px), var(--fy, -8px)); }
 }
 
-/* ── Certifications ── */
+/* ── Certifications: constellation plaques ── */
 .nv-certs {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(2, minmax(200px, 1fr));
   gap: 18px;
@@ -3185,13 +3314,27 @@ body.nv-open { overflow: hidden; }
   margin: 0 auto;
   perspective: 900px;
 }
+/* Faint constellation cross through the 2×2 grid gap, drawn on arrival */
+.nv-certs::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    linear-gradient(90deg, transparent 48%, rgba(160,190,255,0.14) 50%, transparent 52%),
+    linear-gradient(0deg, transparent 48%, rgba(160,190,255,0.14) 50%, transparent 52%);
+  opacity: 0;
+  transition: opacity 0.6s ease 0.2s;
+}
+.nv-item.nv-front .nv-certs::before { opacity: 1; }
 .nv-cert {
   --accent: var(--red);
+  position: relative;
   padding: 24px 22px;
   text-align: left;
   background: rgba(10,13,26,0.66);
-  border: 1px solid rgba(160,190,255,0.14);
-  border-top: 2px solid var(--accent);
+  border: 1px solid color-mix(in srgb, var(--nv-a1, var(--accent)) 22%, transparent);
   border-radius: 12px;
   box-shadow: inset 0 1px 0 rgba(200,220,255,0.07), 0 30px 70px rgba(0,0,0,0.55);
   backdrop-filter: blur(8px);
@@ -3200,7 +3343,30 @@ body.nv-open { overflow: hidden; }
 }
 .nv-cert:hover,
 .nv-item.nv-front .nv-cert {
-  box-shadow: inset 0 1px 0 rgba(200,220,255,0.07), 0 30px 70px rgba(0,0,0,0.55), 0 0 24px color-mix(in srgb, var(--accent) 20%, transparent);
+  border-color: color-mix(in srgb, var(--nv-a1, var(--accent)) 45%, transparent);
+  box-shadow: inset 0 1px 0 rgba(200,220,255,0.07), 0 30px 70px rgba(0,0,0,0.55), 0 0 24px color-mix(in srgb, var(--nv-a1, var(--accent)) 20%, transparent);
+}
+/* Three tiny glowing star points twinkling in the card corners */
+.nv-cert::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 88% 20%, rgba(255,255,255,0.9) 0, rgba(255,255,255,0.9) 1.6px, transparent 2.4px),
+    radial-gradient(circle at 78% 32%, color-mix(in srgb, var(--nv-a1) 80%, transparent) 0, color-mix(in srgb, var(--nv-a1) 80%, transparent) 1.1px, transparent 1.9px),
+    radial-gradient(circle at 14% 82%, color-mix(in srgb, var(--nv-a2) 80%, transparent) 0, color-mix(in srgb, var(--nv-a2) 80%, transparent) 1.1px, transparent 1.9px);
+  opacity: 0.5;
+  animation: nv-twinkle 4.2s ease-in-out var(--nv-tdel, 0s) infinite alternate;
+}
+.nv-cert:nth-child(1)::after { --nv-tdel: 0s; }
+.nv-cert:nth-child(2)::after { --nv-tdel: -1.3s; }
+.nv-cert:nth-child(3)::after { --nv-tdel: -2.6s; }
+.nv-cert:nth-child(4)::after { --nv-tdel: -3.4s; }
+@keyframes nv-twinkle {
+  from { opacity: 0.28; }
+  to   { opacity: 0.95; }
 }
 .nv-cert h4 {
   font-family: var(--font-display);
@@ -3224,6 +3390,29 @@ body.nv-open { overflow: hidden; }
   color: var(--white);
   margin-bottom: 40px;
   text-shadow: 0 0 40px rgba(217,119,87,0.3);
+}
+/* One-shot aurora sheen sweeps the heading on arrival. Both gradient
+   ends are white, so the resting heading is identical to plain white
+   and the coral text-shadow still renders behind the clipped fill. */
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .nv-contact-heading {
+    background: linear-gradient(100deg,
+      #FFFFFF 0%, #FFFFFF 38%,
+      #8B7CF6 44%, #4EC9E8 50%, #2DD4BF 56%,
+      #FFFFFF 62%, #FFFFFF 100%);
+    background-size: 300% 100%;
+    background-position: 100% 0;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .nv-item-contact.nv-front .nv-contact-heading {
+    animation: nv-sheen 1.4s ease-in-out 0.25s 1 both;
+  }
+  @keyframes nv-sheen {
+    from { background-position: 100% 0; }
+    to   { background-position: 0 0; }
+  }
 }
 .nv-cta-row {
   display: flex;
@@ -3299,6 +3488,7 @@ body.nv-open { overflow: hidden; }
   .nv-close { top: 14px; right: 14px; }
   .nv-stat { padding: 20px 24px; }
   .nv-certs { grid-template-columns: 1fr; }
+  .nv-certs::before { display: none; } /* no 2×2 cross in a single column */
   .nv-rail { right: 6px; gap: 8px; }
   .nv-constellation { gap: 24px; }
   .nv-core { gap: 10px; }
@@ -3334,6 +3524,15 @@ body.nv-open { overflow: hidden; }
   transform: none;
   transition: none;
 }
+/* .nv-front never toggles in the flat column, so pin the aurora end
+   states directly: full look, frozen, no arrival animation. */
+.nv-overlay.nv-static .nv-item-card::after { opacity: 0.5; transform: none; animation: none; }
+.nv-overlay.nv-static .nv-card::before,
+.nv-overlay.nv-static .nv-stat::before,
+.nv-overlay.nv-static .nv-cert::before { opacity: 0.55; animation: none; }
+.nv-overlay.nv-static .nv-stat::after,
+.nv-overlay.nv-static .nv-certs::before { opacity: 1; }
+.nv-overlay.nv-static .nv-stat { animation: none; }
 
 /* ── Reduced motion: nothing loops ── */
 @media (prefers-reduced-motion: reduce) {
@@ -3341,4 +3540,7 @@ body.nv-open { overflow: hidden; }
   .nv-core-tool { animation: none; }
   .nv-core-tool, .nv-chip-in { transition: none; }
   .nv-ignition, .nv-flash { display: none; }
+  .nv-stat, .nv-letter, .nv-contact-heading { animation: none !important; }
+  .nv-card::before, .nv-stat::before, .nv-cert::before,
+  .nv-item-card::after, .nv-cert::after { animation: none !important; }
 }

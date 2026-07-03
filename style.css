@@ -3083,17 +3083,89 @@ body.nv-open { overflow: hidden; }
 }
 .nv-card-tags .tag-ico { width: 11px; height: 11px; }
 
-/* ── Beat 4: toolkit constellation ── */
+/* ── Beat 4: toolkit constellation ──
+   Core row of 4 featured tools (brand-glow pulse) over a drifting chip
+   cloud. Everything sits scattered until the item reaches .nv-front,
+   then assembles with a staggered spring (delays via --sd). */
 .nv-constellation {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 34px;
+  max-width: 860px;
+  margin: 0 auto;
+}
+.nv-core {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+}
+.nv-core-tool {
+  --glow: var(--red);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  min-width: 128px;
+  padding: 18px 22px 15px;
+  background: rgba(10,13,26,0.66);
+  border: 1px solid color-mix(in srgb, var(--glow) 45%, transparent);
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: nv-core-pulse 3.4s ease-in-out var(--sd, 0s) infinite;
+  transition: transform 0.75s cubic-bezier(0.22, 1, 0.36, 1) var(--sd, 0s),
+              opacity 0.45s ease var(--sd, 0s),
+              filter 0.3s ease;
+}
+.nv-core-tool:hover { filter: brightness(1.25) saturate(1.1); }
+.nv-core-tool .skill-ico { width: 22px; height: 22px; }
+.nv-core-name {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--white);
+}
+.nv-core-role {
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--grey);
+}
+@keyframes nv-core-pulse {
+  0%, 100% { box-shadow: 0 0 16px color-mix(in srgb, var(--glow) 25%, transparent); }
+  50%      { box-shadow: 0 0 36px color-mix(in srgb, var(--glow) 55%, transparent); }
+}
+.nv-cloud {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 14px 16px;
-  max-width: 860px;
-  margin: 0 auto;
 }
 .nv-chip {
   animation: nv-float var(--fdur, 6s) ease-in-out var(--fdelay, 0s) infinite alternate;
+}
+.nv-chip-in {
+  display: inline-block;
+  transition: transform 0.75s cubic-bezier(0.22, 1, 0.36, 1) var(--sd, 0s),
+              opacity 0.45s ease var(--sd, 0s);
+}
+/* Scattered until the toolkit item locks in at the front of the tunnel */
+.nv-item-toolkit .nv-core-tool,
+.nv-item-toolkit .nv-chip-in {
+  opacity: 0;
+  transform: translate(var(--sx, 0px), var(--sy, 0px)) rotate(var(--sr, 0deg)) scale(0.4);
+}
+.nv-item-toolkit.nv-front .nv-core-tool,
+.nv-item-toolkit.nv-front .nv-chip-in {
+  opacity: 1;
+  transform: translate(0, 0) rotate(0deg) scale(1);
+}
+/* Clones must ignore the main page's scroll-reveal state (.visible) */
+.nv-constellation .skill-bubble {
+  opacity: 1;
+  transform: none;
 }
 .nv-chip .skill-bubble {
   cursor: default;
@@ -3233,6 +3305,9 @@ body.nv-open { overflow: hidden; }
   .nv-stat { padding: 20px 24px; }
   .nv-certs { grid-template-columns: 1fr; }
   .nv-rail { right: 6px; gap: 8px; }
+  .nv-constellation { gap: 24px; }
+  .nv-core { gap: 10px; }
+  .nv-core-tool { min-width: 104px; padding: 14px 14px 12px; }
 }
 
 /* ── Static fallback (reduced motion): plain scrolling column ── */
@@ -3257,9 +3332,18 @@ body.nv-open { overflow: hidden; }
 .nv-overlay.nv-static .nv-track { display: none; }
 /* The rail assumes the sticky tunnel stage; the flat column scrolls natively */
 .nv-overlay.nv-static .nv-rail { display: none; }
+/* No .nv-front in the flat column: constellation renders pre-assembled */
+.nv-overlay.nv-static .nv-core-tool,
+.nv-overlay.nv-static .nv-chip-in {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
 
 /* ── Reduced motion: nothing loops ── */
 @media (prefers-reduced-motion: reduce) {
   .nv-scroll-hint span, .nv-chip { animation: none; }
+  .nv-core-tool { animation: none; }
+  .nv-core-tool, .nv-chip-in { transition: none; }
   .nv-loader { display: none; }
 }

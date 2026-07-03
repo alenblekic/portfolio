@@ -2764,18 +2764,68 @@ function initNebulaView() {
       });
     }
 
+    /* Toolkit constellation: 4 featured "core" tools with brand glows in a
+       center row, every other chip drifting around them as a star cloud.
+       Both tiers start scattered and assemble when the item hits .nv-front. */
     const constellation = overlay.querySelector('.nv-constellation');
     if (constellation) {
+      const CORE_TOOLS = {
+        'Make.com':    { glow: '#6D5EF6', role: 'Automation' },
+        'Voiceflow':   { glow: '#3D82E2', role: 'AI Agents' },
+        'Claude Code': { glow: '#D97757', role: 'AI Coding' },
+        'Vercel':      { glow: '#FFFFFF', role: 'Deployment' },
+      };
+      const core = document.createElement('div');
+      core.className = 'nv-core';
+      const cloud = document.createElement('div');
+      cloud.className = 'nv-cloud';
+      const scatter = (el, delayMs) => {
+        const sign = () => (Math.random() < 0.5 ? -1 : 1);
+        el.style.setProperty('--sx', (sign() * (60 + Math.random() * 80)).toFixed(0) + 'px');
+        el.style.setProperty('--sy', (sign() * (40 + Math.random() * 60)).toFixed(0) + 'px');
+        el.style.setProperty('--sr', (sign() * (14 + Math.random() * 12)).toFixed(0) + 'deg');
+        el.style.setProperty('--sd', delayMs + 'ms');
+      };
+      let coreCount = 0, cloudCount = 0;
       document.querySelectorAll('.toolkit-bubbles .skill-bubble').forEach(b => {
+        const toolName = b.textContent.trim();
+        const featured = CORE_TOOLS[toolName];
+        if (featured) {
+          const tool = document.createElement('div');
+          tool.className = 'nv-core-tool';
+          tool.style.setProperty('--glow', featured.glow);
+          const ico = b.querySelector('.skill-ico');
+          if (ico) tool.appendChild(ico.cloneNode(true));
+          const nameEl = document.createElement('span');
+          nameEl.className = 'nv-core-name';
+          nameEl.textContent = toolName;
+          const roleEl = document.createElement('span');
+          roleEl.className = 'nv-core-role';
+          roleEl.textContent = featured.role;
+          tool.append(nameEl, roleEl);
+          scatter(tool, coreCount * 90);
+          core.appendChild(tool);
+          coreCount++;
+          return;
+        }
         const chip = document.createElement('span');
         chip.className = 'nv-chip';
-        chip.style.setProperty('--fx', (Math.random() * 12 - 6).toFixed(1) + 'px');
-        chip.style.setProperty('--fy', (-4 - Math.random() * 8).toFixed(1) + 'px');
+        chip.style.setProperty('--fx', (Math.random() * 28 - 14).toFixed(1) + 'px');
+        chip.style.setProperty('--fy', (-8 - Math.random() * 14).toFixed(1) + 'px');
         chip.style.setProperty('--fdur', (4.5 + Math.random() * 4).toFixed(1) + 's');
         chip.style.setProperty('--fdelay', (-Math.random() * 4).toFixed(1) + 's');
-        chip.appendChild(b.cloneNode(true));
-        constellation.appendChild(chip);
+        const inner = document.createElement('span');
+        inner.className = 'nv-chip-in';
+        scatter(inner, 320 + cloudCount * 35);
+        const clone = b.cloneNode(true);
+        clone.classList.add('visible');   // main-page reveal state must not leak in
+        clone.style.transition = '';       // nor its inline stagger transition
+        inner.appendChild(clone);
+        chip.appendChild(inner);
+        cloud.appendChild(chip);
+        cloudCount++;
       });
+      constellation.append(core, cloud);
     }
 
     /* Wrap the big name's letters for the hover scatter */

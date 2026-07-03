@@ -2453,7 +2453,6 @@ function initNebulaView() {
   const ctx = canvas.getContext('2d');
   const stage = overlay.querySelector('.nv-stage');
   const scrollEl = overlay.querySelector('.nv-scroll'); // scrolls only in .nv-static mode
-  const loader = overlay.querySelector('.nv-loader');
   const closeBtn = overlay.querySelector('.nv-close');
   const items = [...overlay.querySelectorAll('.nv-item')];
   const hasGsap = typeof gsap !== 'undefined';
@@ -2475,7 +2474,9 @@ function initNebulaView() {
   let touchY = null, touchLastY = null;
   let prevPx = 0;
   let vel = 0;            // px/frame — drives the star warp streaks
-  const intro = { v: 0 }; // extra progress offset for the entry fly-in
+  const intro = { v: 0 };  // extra progress offset for the entry fly-in
+  const ignite = { k: 0 }; // 0→1→0 hyperspace ignition ramp on entry
+  let igniTl = null;       // ignition timeline, killed on close
   const mouse = { tx: 0, ty: 0, x: 0, y: 0 };
 
   if (PREFERS_REDUCED_MOTION) overlay.classList.add('nv-static');
@@ -2572,7 +2573,8 @@ function initNebulaView() {
       if (age > 0.7) burst = null;
       else burstK = 1 - age / 0.7;
     }
-    const coreA = Math.min(0.16, Math.abs(vel) * 0.0025) + burstK * 0.22;
+    const coreA = Math.min(0.5,
+      Math.min(0.16, Math.abs(vel) * 0.0025) + burstK * 0.22 + ignite.k * 0.3);
     if (coreA > 0.005) {
       const cs = Math.min(W, H) * 0.95;
       ctx.globalAlpha = coreA;
@@ -2590,11 +2592,11 @@ function initNebulaView() {
       ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI * 2); ctx.stroke();
     }
 
-    const warping = Math.abs(vel) > 8;
+    const warping = Math.abs(vel) > 8 || ignite.k > 0.2;
     const roll = P * 0.06 + t * 0.004; // slow idle revolve, rolls with travel
     const rollC = Math.cos(roll), rollS = Math.sin(roll);
     for (const s of stars) {
-      s.z -= (vel * 0.00045 + 0.00028 + burstK * 0.004) * s.sp;
+      s.z -= (vel * 0.00045 + 0.00028 + burstK * 0.004 + ignite.k * 0.014) * s.sp;
       if (s.z < 0.06) { s.z += 1.06; s.x = Math.random() * 2 - 1; s.y = Math.random() * 2 - 1; s.px = null; }
       else if (s.z > 1.12) { s.z -= 1.06; s.x = Math.random() * 2 - 1; s.y = Math.random() * 2 - 1; s.px = null; }
       const rx = s.x * rollC - s.y * rollS;
@@ -2942,44 +2944,47 @@ function initNebulaView() {
     }
   }
 
-  /* ── Loading bar → reveal ── */
-  function runLoader(onDone) {
+  /* ── Entry: hyperspace ignition (the live starfield IS the loader) ──
+     The A/B mark materializes at center, then flies past the camera as
+     the stars ramp into full warp streaks; a light-gate flash pops at
+     peak and the name card decelerates in out of the afterglow. */
+  function runIgnition(onDone) {
     if (!hasGsap || PREFERS_REDUCED_MOTION) {
-      loader.style.display = 'none';
       onDone();
       return;
     }
-    loader.style.display = '';
-    loader.style.opacity = '1';
-    loader.style.pointerEvents = 'auto';
-    const fill = loader.querySelector('.nv-loader-fill');
-    const pct = loader.querySelector('.nv-loader-pct');
-    const state = { v: 0 };
-    gsap.set(fill, { scaleX: 0 });
-    const dur = seenOnce ? 0.7 : 1.4;
-    gsap.to(state, {
-      v: 100,
-      duration: dur,
-      ease: 'steps(14)',
-      onUpdate: () => {
-        gsap.set(fill, { scaleX: state.v / 100 });
-        if (pct) pct.textContent = Math.round(state.v) + '%';
-      },
-      onComplete: () => {
-        gsap.to(loader, {
-          opacity: 0,
-          duration: 0.45,
-          ease: 'power2.inOut',
-          onComplete: () => {
-            loader.style.pointerEvents = 'none';
-            loader.style.display = 'none';
-          },
-        });
-        onDone();
-      },
-    });
-    gsap.to(fill, { opacity: 0.75, duration: 0.07, repeat: 15, yoyo: true, ease: 'none' });
+    const mark = overlay.querySelector('.nv-ignition-mark');
+    const flash = overlay.querySelector('.nv-flash');
+    const first = !seenOnce;
     seenOnce = true;
+    ignite.k = 0;
+    igniTl = gsap.timeline({ onComplete: () => { igniTl = null; } });
+    if (mark) {
+      igniTl.fromTo(mark,
+        { opacity: 0, scale: first ? 0.7 : 0.85 },
+        { opacity: 1, scale: 1, duration: first ? 0.35 : 0.18, ease: 'power2.out' });
+      igniTl.to(mark, {
+        scale: 9,
+        opacity: 0,
+        duration: first ? 0.7 : 0.5,
+        ease: 'power3.in',
+      }, first ? '+=0.2' : '+=0.05');
+    }
+    /* Stars ramp to full warp underneath the mark fly-through */
+    igniTl.to(ignite, { k: 1, duration: first ? 0.65 : 0.45, ease: 'power2.in' }, first ? 0.35 : 0.15);
+    /* Peak: light-gate ring + white-hot flash */
+    igniTl.add(() => {
+      const t = performance.now() / 1000;
+      burst = { born: t };
+      lastBurstT = t;
+    });
+    if (flash) {
+      igniTl.to(flash, { opacity: 0.85, duration: 0.09, ease: 'power1.in' }, '<');
+      igniTl.to(flash, { opacity: 0, duration: 0.55, ease: 'power2.out' });
+    }
+    /* Hand over to the name fly-in while the warp settles */
+    igniTl.add(onDone, '-=0.45');
+    igniTl.to(ignite, { k: 0, duration: 1.0, ease: 'power2.out' }, '-=0.5');
   }
 
   function reveal() {
@@ -3105,6 +3110,8 @@ function initNebulaView() {
     measure();
     scrollEl.scrollTop = 0; // static-mode column starts at the top
     pos.p = 0; curIdx = 0; acc = 0; prevPx = 0;
+    /* Cards stay hidden in deep space during the ignition; reveal() flies them in */
+    if (hasGsap && !PREFERS_REDUCED_MOTION) intro.v = -1.6;
     layoutItems();
 
     overlay.addEventListener('wheel', onWheel, { passive: false });
@@ -3120,7 +3127,7 @@ function initNebulaView() {
     } else if (rafId === null) {
       rafId = requestAnimationFrame(loop);
     }
-    runLoader(reveal);
+    runIgnition(reveal);
     if (closeBtn) closeBtn.focus();
   }
 
@@ -3131,7 +3138,15 @@ function initNebulaView() {
     overlay.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('nv-open');
     if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
-    if (hasGsap) gsap.killTweensOf(pos);
+    if (hasGsap) {
+      gsap.killTweensOf([pos, intro, ignite]);
+      if (igniTl) { igniTl.kill(); igniTl = null; }
+      ignite.k = 0;
+      const mark = overlay.querySelector('.nv-ignition-mark');
+      const flash = overlay.querySelector('.nv-flash');
+      if (mark) gsap.set(mark, { opacity: 0 });
+      if (flash) gsap.set(flash, { opacity: 0 });
+    }
     overlay.removeEventListener('wheel', onWheel);
     overlay.removeEventListener('touchstart', onTouchStart);
     overlay.removeEventListener('touchmove', onTouchMove);

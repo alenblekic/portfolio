@@ -2754,47 +2754,39 @@ body.nv-open { overflow: hidden; }
   background: radial-gradient(ellipse at center, transparent 45%, rgba(2,2,10,0.6) 100%);
 }
 
-/* ── Loader ── */
-.nv-loader {
+/* ── Hyperspace ignition (entry): mark flies past the camera over the
+   live starfield, then a white-hot light-gate flash pops at peak ── */
+.nv-ignition {
   position: absolute;
   inset: 0;
   z-index: 3;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 22px;
-  background: #030309;
+  pointer-events: none;
 }
-.nv-loader-mark {
+.nv-ignition-mark {
   display: flex;
   align-items: baseline;
   gap: 1px;
   font-family: var(--font-display);
-  font-size: 2rem;
+  font-size: 2.6rem;
   font-weight: 700;
   line-height: 1;
+  opacity: 0;
+  will-change: transform, opacity;
+  text-shadow: 0 0 34px rgba(217,119,87,0.6), 0 0 90px rgba(217,119,87,0.25);
 }
-.nv-loader-track {
-  width: 220px;
-  height: 2px;
-  background: rgba(255,255,255,0.08);
-  border-radius: 2px;
-  overflow: hidden;
-}
-.nv-loader-fill {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, var(--red-dark), var(--red));
-  box-shadow: 0 0 18px var(--red-glow);
-  transform: scaleX(0);
-  transform-origin: left center;
-}
-.nv-loader-pct {
-  font-family: var(--font-display);
-  font-size: 0.75rem;
-  letter-spacing: 0.2em;
-  color: var(--grey);
+.nv-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(circle at 50% 50%,
+    rgba(255,246,238,0.95),
+    rgba(217,119,87,0.55) 40%,
+    rgba(3,3,9,0) 75%);
 }
 
 /* ── Close button ── */
@@ -3348,5 +3340,5 @@ body.nv-open { overflow: hidden; }
   .nv-scroll-hint span, .nv-chip { animation: none; }
   .nv-core-tool { animation: none; }
   .nv-core-tool, .nv-chip-in { transition: none; }
-  .nv-loader { display: none; }
+  .nv-ignition, .nv-flash { display: none; }
 }

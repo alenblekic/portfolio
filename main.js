@@ -2593,10 +2593,12 @@ function initNebulaView() {
     }
 
     const warping = Math.abs(vel) > 8 || ignite.k > 0.2;
-    const roll = P * 0.06 + t * 0.004; // slow idle revolve, rolls with travel
+    const roll = P * 0.06 + t * 0.008; // visible idle revolve, rolls with travel
     const rollC = Math.cos(roll), rollS = Math.sin(roll);
     for (const s of stars) {
-      s.z -= (vel * 0.00045 + 0.00028 + burstK * 0.004 + ignite.k * 0.014) * s.sp;
+      /* Baseline 0.0012: the field always streams gently toward the camera,
+         so the stars stay visibly alive between warps, not just during them */
+      s.z -= (vel * 0.00045 + 0.0012 + burstK * 0.004 + ignite.k * 0.014) * s.sp;
       if (s.z < 0.06) { s.z += 1.06; s.x = Math.random() * 2 - 1; s.y = Math.random() * 2 - 1; s.px = null; }
       else if (s.z > 1.12) { s.z -= 1.06; s.x = Math.random() * 2 - 1; s.y = Math.random() * 2 - 1; s.px = null; }
       const rx = s.x * rollC - s.y * rollS;

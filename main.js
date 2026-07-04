@@ -2760,6 +2760,14 @@ function initNebulaView() {
 
   let railDots = [];
   let railActive = -1;
+  /* Toggle .nv-front and play/pause that card's GSAP planet churn only on
+     state change — so exactly the centered card's surfaces animate (perf). */
+  function setFront(item, on) {
+    if (!!item._nvFront === on) { item.classList.toggle('nv-front', on); return; }
+    item._nvFront = on;
+    item.classList.toggle('nv-front', on);
+    if (item._nvChurn) item._nvChurn.forEach(t => (on ? t.play() : t.pause()));
+  }
   function layoutItems() {
     if (PREFERS_REDUCED_MOTION || !vh) return;
     const P = pos.p + intro.v;
@@ -2773,14 +2781,14 @@ function initNebulaView() {
       if (o <= 0.01) {
         item.style.visibility = 'hidden';
         item.style.pointerEvents = 'none';
-        item.classList.remove('nv-front');
+        setFront(item, false);
         return;
       }
       item.style.visibility = 'visible';
       item.style.opacity = o.toFixed(3);
       item.style.zIndex = String(2000 + Math.round(td * 100));
       item.style.pointerEvents = Math.abs(td) < 0.6 ? 'auto' : 'none';
-      item.classList.toggle('nv-front', Math.abs(td) < 0.12);
+      setFront(item, Math.abs(td) < 0.12);
       item.style.transform =
         `translate(-50%, -50%) translate3d(${tp.x.toFixed(1)}px, ${tp.y.toFixed(1)}px, ${tp.z.toFixed(1)}px)`;
     });
@@ -2817,7 +2825,46 @@ function initNebulaView() {
     rafId = requestAnimationFrame(loop);
   }
 
-  /* ── Build dynamic items once (projects from PROJECTS[], chips cloned) ── */
+  /* ── Realistic planet surface via SVG feTurbulence ──
+     fractalNoise (Y-freq > X-freq → gas-giant bands) is lit + colored by
+     feDiffuseLighting (noise alpha = bump map), clipped to the circle, then
+     a radial shadow gives the sphere terminator and a stroke gives the rim.
+     Each planet gets a unique filter id (so seeds don't collide) and its own
+     hue baked in. The `<feTurbulence>` node is the GSAP churn target. */
+  let planetUID = 0;
+  function nvPlanetSVG(hex, opts) {
+    opts = opts || {};
+    const n = ++planetUID;
+    const seed = opts.seed != null ? opts.seed : Math.floor(Math.random() * 90) + 1;
+    const bf = opts.baseFrequency || '0.011 0.038';
+    const oct = opts.octaves || 5;
+    const surf = opts.surfaceScale != null ? opts.surfaceScale : 2.4;
+    const elev = opts.elevation != null ? opts.elevation : 52;
+    return (
+      `<svg class="nv-planet-svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true">` +
+        `<defs>` +
+          `<filter id="nvpl-${n}" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB">` +
+            `<feTurbulence type="fractalNoise" baseFrequency="${bf}" numOctaves="${oct}" seed="${seed}" result="n" data-nv-turb="1"/>` +
+            `<feDiffuseLighting in="n" surfaceScale="${surf}" diffuseConstant="1.15" lighting-color="${hex}" result="lit">` +
+              `<feDistantLight azimuth="235" elevation="${elev}"/>` +
+            `</feDiffuseLighting>` +
+            `<feComposite in="lit" in2="SourceGraphic" operator="in"/>` +
+          `</filter>` +
+          `<radialGradient id="nvsh-${n}" cx="33%" cy="28%" r="80%">` +
+            `<stop offset="0%" stop-color="rgba(255,255,255,0.32)"/>` +
+            `<stop offset="38%" stop-color="rgba(255,255,255,0)"/>` +
+            `<stop offset="74%" stop-color="rgba(4,5,14,0.5)"/>` +
+            `<stop offset="100%" stop-color="rgba(3,4,12,0.96)"/>` +
+          `</radialGradient>` +
+        `</defs>` +
+        `<circle cx="50" cy="50" r="50" filter="url(#nvpl-${n})"/>` +
+        `<circle cx="50" cy="50" r="50" fill="url(#nvsh-${n})"/>` +
+        `<circle cx="50" cy="50" r="49.4" fill="none" stroke="${hex}" stroke-opacity="0.5" stroke-width="0.7"/>` +
+      `</svg>`
+    );
+  }
+
+  /* Build dynamic items once (projects from PROJECTS[], chips cloned) */
   function buildItems() {
     if (overlay.dataset.built) return;
     overlay.dataset.built = '1';
@@ -2835,10 +2882,18 @@ function initNebulaView() {
         const tags = (typeof tagHTML === 'function')
           ? p.tags.map(tagHTML).join('')
           : p.tags.map(tg => `<span class="tag">${tg}</span>`).join('');
+        /* Distinct surface character per planet: band scale, detail, relief */
+        const PROJ_SURF = [
+          { seed: 17, baseFrequency: '0.010 0.032', octaves: 5, surfaceScale: 2.6, elevation: 54 },
+          { seed: 42, baseFrequency: '0.013 0.052', octaves: 6, surfaceScale: 2.2, elevation: 48 },
+          { seed: 68, baseFrequency: '0.009 0.028', octaves: 5, surfaceScale: 3.0, elevation: 58 },
+          { seed: 91, baseFrequency: '0.015 0.045', octaves: 6, surfaceScale: 2.0, elevation: 50 },
+        ];
+        const planetSvg = nvPlanetSVG(p.accent || '#8B7CF6', PROJ_SURF[di] || PROJ_SURF[0]);
         holder.innerHTML =
           `<div class="nv-ring-sys nv-proj-planet">` +
             `<div class="nv-ring nv-ring-back"><div class="nv-ring-fill"></div></div>` +
-            `<div class="nv-planet"></div>` +
+            `<div class="nv-planet">${planetSvg}</div>` +
             `<div class="nv-ring nv-ring-front"><div class="nv-ring-fill"></div></div>` +
           `</div>` +
           `<div class="nv-card-readout">` +
@@ -2867,9 +2922,17 @@ function initNebulaView() {
         { r: 176, period: 34, tilt: -12, phase: 130 },
         { r: 150, period: 30, tilt: 20,  phase: 245 },
       ];
+      const STAT_HUES = ['#5BC8F5', '#2DD4BF', '#7CE0C3'];
       stats.forEach((stat, i) => {
         const o = ORBITS[i] || ORBITS[0];
         stat.classList.add('hue-' + (i + 1)); // preserve per-stat hue (nth-child no longer applies)
+        /* Turn .nv-stat-num into a textured planet with the number on top */
+        const numEl = stat.querySelector('.nv-stat-num');
+        if (numEl && !numEl.querySelector('.nv-planet-svg')) {
+          const val = numEl.textContent;
+          const svg = nvPlanetSVG(STAT_HUES[i] || STAT_HUES[0], { baseFrequency: '0.014 0.05', octaves: 5, surfaceScale: 2.2 });
+          numEl.innerHTML = svg + `<span class="nv-stat-val">${val}</span>`;
+        }
         const scaffold = document.createElement('div');
         scaffold.className = 'nv-orbit';
         scaffold.style.setProperty('--o-radius', o.r + 'px');
@@ -2892,7 +2955,7 @@ function initNebulaView() {
 
     /* Certs become glowing moons: prepend a moon orb to each plaque (its
        inline --accent drives the hue). */
-    overlay.querySelectorAll('.nv-cert').forEach(cert => {
+    overlay.querySelectorAll('.nv-cert').forEach((cert, ci) => {
       if (cert.querySelector('.nv-cert-moon')) return;
       const text = document.createElement('div');
       text.className = 'nv-cert-text';
@@ -2900,6 +2963,8 @@ function initNebulaView() {
       const moon = document.createElement('span');
       moon.className = 'nv-cert-moon';
       moon.setAttribute('aria-hidden', 'true');
+      const hue = (cert.style.getPropertyValue('--accent') || '#D97759').trim();
+      moon.innerHTML = nvPlanetSVG(hue, { seed: 7 + ci * 13, baseFrequency: '0.016 0.055', octaves: 4, surfaceScale: 2.0 });
       cert.append(moon, text);
     });
 
@@ -3044,7 +3109,30 @@ function initNebulaView() {
     });
     overlay.appendChild(rail);
 
+    setupPlanetChurn();
     setupHover();
+  }
+
+  /* Give each textured planet a paused GSAP tween that yoyos its
+     feTurbulence seed — a seamless, pop-free cloud drift. Stored on the
+     owning .nv-item so setFront() plays only the centered card's churn. */
+  function setupPlanetChurn() {
+    if (!hasGsap || PREFERS_REDUCED_MOTION) return;
+    items.forEach(item => {
+      const turbs = [...item.querySelectorAll('feTurbulence')];
+      if (!turbs.length) return;
+      item._nvChurn = turbs.map(turb => {
+        const base = parseFloat(turb.getAttribute('seed')) || 0;
+        return gsap.to(turb, {
+          attr: { seed: base + 26 },
+          duration: 34,
+          ease: 'sine.inOut',
+          yoyo: true,
+          repeat: -1,
+          paused: true,
+        });
+      });
+    });
   }
 
   /* ── Hover micro-interactions (pointer devices only) ── */

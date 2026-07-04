@@ -2765,7 +2765,9 @@ body.nv-open { overflow: hidden; }
    which counter-rotates by the same amount to keep labels upright. */
 @property --nv-orbit { syntax: '<angle>'; inherits: true; initial-value: 0deg; }
 
-/* ── Planet sphere ── */
+/* ── Planet sphere: an inline SVG (feTurbulence surface) fills the body;
+   the CSS gradient underneath is the fallback + the look for tiny dots
+   that carry no SVG. Atmospheric glow stays on the container. ── */
 .nv-planet {
   --p-size: 180px;
   --p-hue: var(--nv-a1, #8B7CF6);
@@ -2775,48 +2777,26 @@ body.nv-open { overflow: hidden; }
   width: var(--p-size);
   height: var(--p-size);
   border-radius: 50%;
+  overflow: hidden;                   /* clip the SVG texture to the sphere */
   background:
     radial-gradient(circle at var(--p-light),
-      rgba(255,255,255,0.65) 0%, rgba(255,255,255,0) 17%),
+      rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 18%),
     radial-gradient(circle at var(--p-light),
       color-mix(in srgb, var(--p-hue) 78%, white 22%) 0%,
-      var(--p-hue) 32%,
-      color-mix(in srgb, var(--p-hue) 52%, #05060f) 63%,
-      #05060f 100%),
-    radial-gradient(circle at 72% 80%,
-      color-mix(in srgb, var(--p-hue2) 42%, #05060f) 0%, #04040c 78%);
+      var(--p-hue) 34%,
+      color-mix(in srgb, var(--p-hue) 50%, #05060f) 66%, #05060f 100%);
   box-shadow:
-    inset 0 0 34px rgba(0,0,0,0.55),
     0 0 46px color-mix(in srgb, var(--p-hue) 42%, transparent),
     0 0 100px color-mix(in srgb, var(--p-hue) 24%, transparent);
   isolation: isolate;
 }
-/* drifting surface bands (front-card only) */
-.nv-planet::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background:
-    radial-gradient(ellipse 62% 34% at 32% 42%, color-mix(in srgb, var(--p-hue2) 55%, transparent), transparent 62%),
-    radial-gradient(ellipse 48% 26% at 68% 66%, color-mix(in srgb, var(--p-hue) 48%, transparent), transparent 58%);
-  mix-blend-mode: screen;
-  opacity: 0.75;
-  pointer-events: none;
-}
-/* bright atmospheric rim */
-.nv-planet::after {
-  content: '';
-  position: absolute;
-  inset: -1px;
+.nv-planet-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
-  box-shadow: inset 0 0 14px 1px color-mix(in srgb, var(--p-hue) 65%, white 20%);
-  opacity: 0.6;
-  pointer-events: none;
 }
-.nv-item.nv-front .nv-planet { will-change: transform; }
-.nv-item.nv-front .nv-planet::before { animation: nv-surface-drift 28s linear infinite; }
-@keyframes nv-surface-drift { to { transform: rotate(360deg) scale(1.05); } }
+.nv-item.nv-front .nv-planet { will-change: filter; }
 
 /* ── Saturn ring system: planet sits between two tilted half-rings ── */
 .nv-ring-sys {
@@ -3255,25 +3235,35 @@ body.nv-open { overflow: hidden; }
 .nv-item-about .nv-stat::before,
 .nv-item-about .nv-stat::after { display: none; } /* kill comet ring + fake orbit */
 .nv-item-about .nv-stat-num {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
+  overflow: hidden;
   width: 92px;
   height: 92px;
   border-radius: 50%;
-  font-size: 1.45rem;
-  color: #fff;
-  text-shadow: 0 0 14px color-mix(in srgb, var(--nv-a1) 65%, transparent);
+  /* gradient is the fallback under the SVG texture */
   background:
-    radial-gradient(circle at 34% 30%, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0) 20%),
+    radial-gradient(circle at 34% 30%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 20%),
     radial-gradient(circle at 34% 30%,
       color-mix(in srgb, var(--nv-a1) 78%, white 22%) 0%,
       var(--nv-a1) 34%,
       color-mix(in srgb, var(--nv-a1) 50%, #05060f) 66%, #05060f 100%);
   box-shadow:
-    inset 0 0 16px rgba(0,0,0,0.5),
     0 0 26px color-mix(in srgb, var(--nv-a1) 48%, transparent),
     0 0 60px color-mix(in srgb, var(--nv-a1) 24%, transparent);
+}
+.nv-item-about .nv-stat-num .nv-planet-svg { position: absolute; inset: 0; }
+.nv-stat-val {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.45rem;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.85), 0 0 12px rgba(0,0,0,0.6);
 }
 .nv-item-about .nv-stat-label { max-width: 128px; color: var(--white); opacity: 0.82; }
 /* One-shot: stat planets fly onto their orbits from the sun on arrival */
@@ -3657,6 +3647,8 @@ body.nv-open { overflow: hidden; }
 }
 /* Glowing moon body anchoring each plaque, in the cert's accent hue */
 .nv-cert-moon {
+  position: relative;
+  overflow: hidden;
   flex: 0 0 auto;
   width: 46px;
   height: 46px;
@@ -3668,9 +3660,9 @@ body.nv-open { overflow: hidden; }
       var(--accent) 38%,
       color-mix(in srgb, var(--accent) 45%, #05060f) 70%, #05060f 100%);
   box-shadow:
-    inset 0 0 10px rgba(0,0,0,0.5),
     0 0 20px color-mix(in srgb, var(--accent) 50%, transparent);
 }
+.nv-cert-moon .nv-planet-svg { position: absolute; inset: 0; }
 .nv-cert-text { min-width: 0; }
 .nv-cert:hover,
 .nv-item.nv-front .nv-cert {
@@ -3922,7 +3914,6 @@ body.nv-open { overflow: hidden; }
 
 /* Celestial bodies: show fully-formed and frozen (no .nv-front fires) */
 .nv-overlay.nv-static .nv-proj-planet { opacity: 1; transform: none; animation: none; }
-.nv-overlay.nv-static .nv-planet::before,
 .nv-overlay.nv-static .nv-ring-fill,
 .nv-overlay.nv-static .nv-sun,
 .nv-overlay.nv-static .nv-core-star { animation: none; }
@@ -3958,6 +3949,6 @@ body.nv-open { overflow: hidden; }
   .nv-stat, .nv-letter, .nv-contact-heading { animation: none !important; }
   .nv-card::before, .nv-stat::before, .nv-cert::before,
   .nv-item-card::after, .nv-cert::after { animation: none !important; }
-  .nv-planet::before, .nv-ring-fill, .nv-orbit-arm, .nv-sun, .nv-core-star,
+  .nv-ring-fill, .nv-orbit-arm, .nv-sun, .nv-core-star,
   .nv-proj-planet, .nv-name-orbits * { animation: none !important; }
 }

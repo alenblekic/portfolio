@@ -2436,13 +2436,14 @@ function initContactImmersive() {
 
 /* ─────────────────────────────────────────────────────────────
    NEBULA VIEW — immersive warp tunnel overlay.
-   Gesture-stepped navigation: no native scroll in tunnel mode (no
+   Free-flight navigation: no native scroll in tunnel mode (no
    ScrollTrigger either — the overlay is hidden at init and global
-   refreshes would fight its measurements). Wheel flicks / swipes /
-   arrow keys request discrete warp jumps; a GSAP tween drives the
-   virtual position between stops, so input jitter never reaches the
-   cards. The .nv-stage is a full-viewport 3D stage whose .nv-items
-   fly at the camera over a zoom-parallax 3D starfield canvas.
+   refreshes would fight its measurements). Wheel / touch drags move
+   a target; the camera position glides after it with an exponential
+   follow, and an idle magnet docks it on the nearest card, so input
+   jitter never reaches the cards. The .nv-stage is a full-viewport
+   3D stage whose .nv-items fly at the camera over a zoom-parallax
+   3D starfield canvas; speed rolls the stage and widens the FOV.
 ───────────────────────────────────────────────────────── */
 function initNebulaView() {
   const overlay = document.getElementById('nebula-view');
@@ -2464,15 +2465,14 @@ function initNebulaView() {
   let seenOnce = false;
   let lastFocus = null;
   let vw = 0, vh = 1;
-  const pos = { p: 0 };   // virtual position in sections — the only motion source
-  let curIdx = 0;         // current stop index
-  let acc = 0;            // wheel gesture accumulator
-  let warpLock = 0;       // input swallowed until this timestamp (ms)
-  let wheelArmed = true;  // false after a warp until a new gesture begins
-  let lastWheelT = 0;
-  let lastWheelD = 0;
-  let touchY = null, touchLastY = null;
+  const pos = { p: 0, t: 0 }; // virtual position + free-flight target (sections)
+  let warpLock = 0;       // input swallowed until this timestamp (ms) — intro lock
+  let lastInputT = 0;     // last wheel/touch/key; idle ≥260ms engages the card magnet
+  let lastLoopT = 0;      // previous rAF timestamp (ms) for the physics dt
+  let touchLastY = null;
   let prevPx = 0;
+  let prevP = 0;          // physics-step position memory (sections)
+  let velS = 0;           // smoothed velocity (sections/s) — drives roll/FOV shake
   let vel = 0;            // px/frame — drives the star warp streaks
   const intro = { v: 0 };  // extra progress offset for the entry fly-in
   const ignite = { k: 0 }; // 0→1→0 hyperspace ignition ramp on entry
@@ -2589,13 +2589,15 @@ function initNebulaView() {
   function drawFrame(t) {
     const W = overlay.clientWidth, H = overlay.clientHeight;
     const cx = W / 2, cy = H / 2;
-    const f = Math.min(W, H) * 0.5; // focal length for star projection
+    /* Focal length shrinks with speed — a wide-angle FOV punch that
+       stretches the starfield outward during fast travel */
+    const f = Math.min(W, H) * 0.5 * (1 - Math.min(0.18, Math.abs(velS) * 0.15));
     const P = pos.p + intro.v;
     mouse.x += (mouse.tx - mouse.x) * 0.06;
     mouse.y += (mouse.ty - mouse.y) * 0.06;
     ctx.clearRect(0, 0, W, H);
 
-    const roll = P * 0.06 + t * 0.008; // visible idle revolve, rolls with travel
+    const roll = P * 0.06 + t * 0.008 + velS * 0.015; // idle revolve + travel + speed tilt
 
     /* Dust band first: the deepest layer, everything else draws over it */
     ctx.save();
@@ -2801,8 +2803,37 @@ function initNebulaView() {
     }
   }
 
+  /* ── Free-flight physics: pos.p glides after pos.t with an exponential
+     follow (~0.3s time constant — the whole "smoothness"), an idle magnet
+     eases the target onto the nearest card so nothing parks in empty space,
+     and the smoothed velocity drives the camera roll + FOV punch. Called
+     from loop() with the real frame dt; exposed as overlay._nvStep so the
+     preview harness (frozen rAF) can advance it manually. */
+  function physicsStep(dtMs) {
+    const dt = Math.min(Math.max(dtMs / 1000, 0.001), 0.05);
+    if (performance.now() - lastInputT > 260) {
+      pos.t += (Math.round(pos.t) - pos.t) * Math.min(1, 3 * dt);
+    }
+    pos.p += (pos.t - pos.p) * Math.min(1, 3.2 * dt);
+    const velN = (pos.p - prevP) / dt;
+    prevP = pos.p;
+    velS += (velN - velS) * Math.min(1, 6 * dt);
+    /* Speed shake: roll the whole stage with the velocity and pull the
+       perspective in (FOV widens). Floor at 1000px — the card z-cap is 900,
+       so passed cards still can't blow up into giant ghosts. */
+    if (stage) {
+      const roll = Math.max(-2.2, Math.min(2.2, velS * 0.9));
+      stage.style.rotate = (Math.abs(velS) < 0.01 ? 0 : roll).toFixed(3) + 'deg';
+      stage.style.perspective =
+        (1100 - Math.min(100, Math.abs(velS) * 90)).toFixed(1) + 'px';
+    }
+    layoutItems();
+  }
+
   function loop(now) {
     const t = now / 1000;
+    physicsStep(lastLoopT ? now - lastLoopT : 16.7);
+    lastLoopT = now;
     const px = pos.p * vh; // velocity in px/frame keeps the canvas effect scales
     vel = px - prevPx;
     prevPx = px;
@@ -2818,10 +2849,12 @@ function initNebulaView() {
       lastStop = stop;
     }
     drawFrame(t);
-    /* Camera parallax: the whole tunnel leans with the (smoothed) mouse */
+    /* Camera parallax + flight-path weave: the tunnel leans with the
+       (smoothed) mouse and sways gently along the journey */
+    const P = pos.p + intro.v;
     if (stage) stage.style.perspectiveOrigin =
-      (50 + mouse.x * 4).toFixed(2) + '% ' + (50 + mouse.y * 3).toFixed(2) + '%';
-    layoutItems();
+      (50 + mouse.x * 4 + Math.sin(P * 1.1) * 1.4).toFixed(2) + '% ' +
+      (50 + mouse.y * 3 + Math.cos(P * 0.8) * 1.0).toFixed(2) + '%';
     rafId = requestAnimationFrame(loop);
   }
 
@@ -3242,7 +3275,7 @@ function initNebulaView() {
 
   function reveal() {
     scrollEl.scrollTop = 0;
-    pos.p = 0; curIdx = 0; acc = 0; prevPx = 0;
+    pos.p = 0; pos.t = 0; prevP = 0; prevPx = 0; velS = 0;
     warpLock = performance.now() + 1400; // no jumping mid-intro
     if (hasGsap && !PREFERS_REDUCED_MOTION) {
       /* The name card itself flies in from deep space on entry */
@@ -3260,62 +3293,38 @@ function initNebulaView() {
     vh = overlay.clientHeight || 1;
   }
 
-  /* ── Gesture-stepped navigation: input never drives position directly ──
-     A wheel flick / swipe / arrow key requests one discrete warp jump;
-     warpTo tweens the virtual position, so erratic deltas from a buggy
-     wheel cannot jitter the tunnel and every journey docks dead-center
-     on a card. warpLock swallows inertia tails and repeat events. */
+  /* ── Free-flight navigation: input moves a target, never the position ──
+     Wheel deltas and touch drags nudge pos.t continuously; physicsStep's
+     exponential follow supplies the glide, so inertia tails and buggy-wheel
+     repeats just extend the flight instead of causing double-jumps. The
+     idle magnet then docks the target on the nearest card. warpLock only
+     swallows input during the ignition intro. */
   function warpTo(idx) {
-    idx = Math.max(0, Math.min(items.length - 1, idx));
-    if (idx === curIdx && pos.p === idx) return;
-    curIdx = idx;
-    const dist = Math.abs(pos.p - idx);
-    const dur = Math.min(0.9 + 0.25 * dist, 1.8); // rail jumps fly farther, a bit longer
-    warpLock = performance.now() + dur * 850 + 120;
-    if (hasGsap && !PREFERS_REDUCED_MOTION) {
-      gsap.killTweensOf(pos);
-      gsap.to(pos, { p: idx, duration: dur, ease: 'power2.inOut', onUpdate: layoutItems });
-    } else {
-      pos.p = idx;
-      layoutItems();
-    }
+    pos.t = Math.max(0, Math.min(items.length - 1, idx));
+    lastInputT = performance.now();
   }
   function onWheel(e) {
     if (overlay.classList.contains('nv-static')) return; // native column scroll
     e.preventDefault();
-    const now = performance.now();
+    if (performance.now() < warpLock) return; // ignition intro still playing
     const d = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * vh : e.deltaY;
-    /* Gesture segmentation: a warp disarms the wheel, and only a real
-       gesture boundary re-arms it — a pause since the last event, or a
-       decisive direction flip. Inertia tails and buggy-wheel repeats are
-       neither, so the gesture that caused a jump can never re-fire. */
-    if (now - lastWheelT > 160 || (Math.sign(d) !== Math.sign(lastWheelD) && Math.abs(d) >= 100)) {
-      wheelArmed = true;
-      acc = 0;
-    }
-    lastWheelT = now;
-    lastWheelD = d;
-    if (!wheelArmed || now < warpLock) return;
-    acc += d;
-    if (Math.abs(acc) > 60) {
-      wheelArmed = false;
-      warpTo(curIdx + Math.sign(acc));
-      acc = 0;
-    }
+    pos.t = Math.max(0, Math.min(items.length - 1, pos.t + d * 0.0014));
+    lastInputT = performance.now();
   }
   function onTouchStart(e) {
-    touchY = touchLastY = e.touches[0].clientY;
+    touchLastY = e.touches[0].clientY;
   }
   function onTouchMove(e) {
     if (overlay.classList.contains('nv-static')) return;
     e.preventDefault();
-    touchLastY = e.touches[0].clientY;
+    if (touchLastY === null || performance.now() < warpLock) return;
+    const y = e.touches[0].clientY; // drag up = fly forward
+    pos.t = Math.max(0, Math.min(items.length - 1, pos.t + (touchLastY - y) * 0.006));
+    touchLastY = y;
+    lastInputT = performance.now();
   }
   function onTouchEnd() {
-    if (touchY === null || overlay.classList.contains('nv-static')) { touchY = null; return; }
-    const dy = touchY - touchLastY; // positive = swiped up = travel forward
-    touchY = null;
-    if (Math.abs(dy) > 50 && performance.now() >= warpLock) warpTo(curIdx + Math.sign(dy));
+    touchLastY = null;
   }
   function onMouse(e) {
     mouse.tx = (e.clientX / overlay.clientWidth) * 2 - 1;
@@ -3335,7 +3344,7 @@ function initNebulaView() {
         (e.key === 'ArrowUp' || e.key === 'PageUp') ? -1 : 0;
       if (step) {
         e.preventDefault();
-        if (performance.now() >= warpLock) warpTo(curIdx + step);
+        if (performance.now() >= warpLock) warpTo(Math.round(pos.t) + step);
         return;
       }
       if (e.key === 'Home') { e.preventDefault(); warpTo(0); return; }
@@ -3362,7 +3371,8 @@ function initNebulaView() {
     sizeCanvas();
     measure();
     scrollEl.scrollTop = 0; // static-mode column starts at the top
-    pos.p = 0; curIdx = 0; acc = 0; prevPx = 0;
+    pos.p = 0; pos.t = 0; prevP = 0; prevPx = 0; velS = 0; lastLoopT = 0;
+    overlay._nvStep = physicsStep; // harness hook: rAF is frozen there
     /* Cards stay hidden in deep space during the ignition; reveal() flies them in */
     if (hasGsap && !PREFERS_REDUCED_MOTION) intro.v = -1.6;
     layoutItems();
@@ -3391,6 +3401,8 @@ function initNebulaView() {
     overlay.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('nv-open');
     if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+    lastLoopT = 0; velS = 0;
+    if (stage) { stage.style.rotate = ''; stage.style.perspective = ''; }
     if (hasGsap) {
       gsap.killTweensOf([pos, intro, ignite]);
       if (igniTl) { igniTl.kill(); igniTl = null; }

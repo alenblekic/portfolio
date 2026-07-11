@@ -299,50 +299,29 @@
            fall back to stacked cards via initProjectsMobile. -->
       <div class="projects-stage" id="projects-stage">
 
-        <!-- The four project mockups; each becomes an expanding stage layer -->
+        <!-- The five project centerpieces; each becomes a cinematic poster layer.
+             Live apps (0, 1) show real screenshots; the Voiceflow agents keep
+             their animated chat mockups. -->
         <div class="projects-scroll">
 
-          <!-- Project 01 — Auditly Pro (live audit process) -->
+          <!-- Project 01 - Auditly Pro (live screenshot) -->
           <div class="project-visual-block" data-project="0">
-            <div class="project-mockup audit-mockup">
-              <div class="mockup-header">
-                <div class="mockup-dot red"></div>
-                <div class="mockup-dot yellow"></div>
-                <div class="mockup-dot green"></div>
-                <span class="mockup-title">Auditly Pro — AI Website Audit</span>
-              </div>
-              <div class="audit-body">
-                <div class="audit-url-bar">
-                  <svg class="audit-url-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 15l6-6M11 6l.5-.5a4 4 0 015.5 5.5l-1 1M13 18l-.5.5a4 4 0 01-5.5-5.5l1-1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-                  <span class="audit-url">https://yoursaas.com</span>
-                  <span class="audit-run">Audit</span>
-                </div>
-                <div class="audit-stages">
-                  <div class="audit-stage"><span class="audit-stage-icon"></span> Scraping page with Firecrawl</div>
-                  <div class="audit-stage"><span class="audit-stage-icon"></span> Analyzing conversion &amp; UX with Claude</div>
-                  <div class="audit-stage"><span class="audit-stage-icon"></span> Running deterministic SEO checks</div>
-                  <div class="audit-stage"><span class="audit-stage-icon"></span> Generating scored report</div>
-                </div>
-                <div class="audit-scores">
-                  <div class="audit-score">
-                    <div class="audit-score-head"><span>Conversion</span><span class="audit-score-num">88</span></div>
-                    <div class="audit-score-track"><div class="audit-score-fill" data-score="88"></div></div>
-                  </div>
-                  <div class="audit-score">
-                    <div class="audit-score-head"><span>SEO</span><span class="audit-score-num">92</span></div>
-                    <div class="audit-score-track"><div class="audit-score-fill" data-score="92"></div></div>
-                  </div>
-                  <div class="audit-score">
-                    <div class="audit-score-head"><span>UX</span><span class="audit-score-num">81</span></div>
-                    <div class="audit-score-track"><div class="audit-score-fill" data-score="81"></div></div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <figure class="poster-shot">
+              <img src="img/poster-auditly.webp" alt="Auditly Pro: AI website audit landing page"
+                   width="1200" height="750" loading="lazy" decoding="async">
+            </figure>
           </div>
 
-          <!-- Project 02 -->
+          <!-- Project 02 - Resume Intelligence Engine (live screenshot) -->
           <div class="project-visual-block" data-project="1">
+            <figure class="poster-shot">
+              <img src="img/poster-resume.webp" alt="Resume Intelligence Engine: cyberpunk HUD resume scanner"
+                   width="1200" height="750" loading="lazy" decoding="async">
+            </figure>
+          </div>
+
+          <!-- Project 03 -->
+          <div class="project-visual-block" data-project="2">
             <div class="project-mockup chat-mockup">
               <div class="mockup-header">
                 <div class="mockup-dot red"></div>
@@ -382,8 +361,8 @@
             </div>
           </div>
 
-          <!-- Project 03 -->
-          <div class="project-visual-block" data-project="2">
+          <!-- Project 04 -->
+          <div class="project-visual-block" data-project="3">
             <div class="project-mockup chat-mockup">
               <div class="mockup-header">
                 <div class="mockup-dot red"></div>
@@ -420,8 +399,8 @@
             </div>
           </div>
 
-          <!-- Project 04 -->
-          <div class="project-visual-block" data-project="3">
+          <!-- Project 05 -->
+          <div class="project-visual-block" data-project="4">
             <div class="project-mockup chat-mockup">
               <div class="mockup-header">
                 <div class="mockup-dot red"></div>
@@ -432,14 +411,14 @@
               <div class="chat-window" id="chat-03">
                 <div class="chat-msg bot">
                   <div class="chat-avatar"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="color:#E48FB0"><rect x="9.5" y="3" width="5" height="3" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M9 9.8a3 3 0 0 1 3-3 3 3 0 0 1 3 3V18a2.5 2.5 0 0 1-2.5 2.5h-1A2.5 2.5 0 0 1 9 18V9.8Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M17.5 5.5h.01M19.5 7.5h.01M17.5 9.5h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></div>
-                  <div class="chat-bubble">Welcome! What's the occasion — date night, club, or everyday?</div>
+                  <div class="chat-bubble">Welcome! What's the occasion: date night, club, or everyday?</div>
                 </div>
                 <div class="chat-msg user">
                   <div class="chat-bubble">Date night, something romantic</div>
                 </div>
                 <div class="chat-msg bot">
                   <div class="chat-avatar"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="color:#E48FB0"><rect x="9.5" y="3" width="5" height="3" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M9 9.8a3 3 0 0 1 3-3 3 3 0 0 1 3 3V18a2.5 2.5 0 0 1-2.5 2.5h-1A2.5 2.5 0 0 1 9 18V9.8Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M17.5 5.5h.01M19.5 7.5h.01M17.5 9.5h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></div>
-                  <div class="chat-bubble">Perfect choice. I'd recommend <strong>Velvet Oud</strong> — deep, warm, and sensual — or <strong>Noir Rose</strong> for something elegant and floral. Both are bestsellers for date nights. 🖤</div>
+                  <div class="chat-bubble">Perfect choice. I'd recommend <strong>Velvet Oud</strong> (deep, warm, and sensual) or <strong>Noir Rose</strong> for something elegant and floral. Both are bestsellers for date nights. 🖤</div>
                 </div>
                 <div class="chat-msg bot">
                   <div class="chat-avatar"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="color:#E48FB0"><rect x="9.5" y="3" width="5" height="3" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M9 9.8a3 3 0 0 1 3-3 3 3 0 0 1 3 3V18a2.5 2.5 0 0 1-2.5 2.5h-1A2.5 2.5 0 0 1 9 18V9.8Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M17.5 5.5h.01M19.5 7.5h.01M17.5 9.5h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></div>
@@ -481,6 +460,7 @@
           <span class="proj-progress-node" data-i="1"><i>02</i></span>
           <span class="proj-progress-node" data-i="2"><i>03</i></span>
           <span class="proj-progress-node" data-i="3"><i>04</i></span>
+          <span class="proj-progress-node" data-i="4"><i>05</i></span>
         </div>
       </div>
     </div>

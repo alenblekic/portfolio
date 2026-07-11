@@ -33,7 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initAboutSlideshow();
   initMobileNav();
   initPipelineAnimation();
-  initAuditMockup();
   initGlobe();
   initAlenSignature();
   initSectionFlash();
@@ -67,8 +66,8 @@ function animateWhenVisible(target, frame) {
 ───────────────────────────────────────────────────────── */
 function initCertTilt() {
   const MAX = 9; // max tilt in degrees
-  document.querySelectorAll('.cert-card-v2, .stat-card, .project-mockup').forEach(card => {
-    const spotlight = card.classList.contains('stat-card') || card.classList.contains('cert-card-v2') || card.classList.contains('project-mockup');
+  document.querySelectorAll('.cert-card-v2, .stat-card, .project-mockup, .poster-shot').forEach(card => {
+    const spotlight = true; // every tilt target also gets the cursor glare
     card.addEventListener('mousemove', e => {
       const r = card.getBoundingClientRect();
       const px = (e.clientX - r.left) / r.width  - 0.5; // -0.5 left → 0.5 right
@@ -939,13 +938,16 @@ function projectActionsHTML(p, i) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   PROJECTS — CINEMATIC SCROLL-EXPANSION (desktop, motion)
-   The stage pins; one project at a time, its mockup expands from a
-   small frame toward full-bleed with a slower parallax glow behind,
-   then its overlay copy reveals, then it hands off to the next.
-   Mobile and reduced-motion bail here and use the stacked cards
+   PROJECTS — CINEMATIC POSTER SHOWCASE (desktop, motion)
+   The stage pins and each project plays as a movie-poster story in a
+   2-unit beat: phase A flies the giant title in char-by-char with the
+   visual landing over the letters; phase B sweeps a striped accent
+   band through while the stats / description / CTAs parallax in.
+   Everything is driven by one scrubbed timeline; ambient loops (media
+   float, chat pipelines) run unscrubbed and only on the active beat.
+   Mobile and reduced-motion bail here and use the static mini-posters
    built by initProjectsMobile instead.
-───────────────────────────────────────────────────────── */
+───────────────────────────────────────────────────── */
 function initProjectsScroll() {
   if (window.innerWidth < 960 || PREFERS_REDUCED_MOTION) return;
 
@@ -953,13 +955,14 @@ function initProjectsScroll() {
   const blocks = gsap.utils.toArray('.projects-scroll .project-visual-block');
   if (!stage || !blocks.length) return;
 
-  // Build each layer: a parallax .stage-glow behind, the mockup wrapped in a
-  // scalable .stage-media (so the cursor-tilt transform on .project-mockup
-  // never fights the GSAP scale), and an injected .stage-overlay of copy.
-  const media = [], glows = [], overlays = [];
-  blocks.forEach((block, i) => {
+  // Build the poster layers per block. The visual (screenshot / chat mockup)
+  // is authored in HTML; everything else is injected from PROJECTS[]. The
+  // media gets an inner .media-float wrapper so the ambient float never
+  // fights the scrubbed transform on .stage-media (same separation the
+  // cursor tilt uses on the visual itself).
+  const layers = blocks.map((block, i) => {
     const p = PROJECTS[i] || {};
-    const mockup = block.querySelector('.project-mockup');
+    const visual = block.querySelector('.project-mockup, .poster-shot');
 
     applyAccent(block, p);
 
@@ -968,28 +971,72 @@ function initProjectsScroll() {
     glow.innerHTML = '<i></i><i></i><i></i>'; /* mesh blobs */
     block.prepend(glow);
 
+    const cast = document.createElement('div');
+    cast.className = 'poster-cast';
+    cast.innerHTML = (p.cast || []).map(c => `<span>${c}</span>`).join('');
+    block.appendChild(cast);
+
+    // Giant title, split per word > per char for the staggered arrival.
+    const title = document.createElement('h3');
+    title.className = 'poster-title';
+    title.setAttribute('aria-label', p.poster || '');
+    title.innerHTML = (p.poster || '').split(' ').map(w =>
+      `<span class="pt-word" aria-hidden="true">${[...w].map(ch =>
+        `<span class="pt-char">${ch}</span>`).join('')}</span>`
+    ).join('');
+    block.appendChild(title);
+
     const wrap = document.createElement('div');
     wrap.className = 'stage-media';
-    if (mockup) { mockup.parentNode.insertBefore(wrap, mockup); wrap.appendChild(mockup); }
+    const float = document.createElement('div');
+    float.className = 'media-float';
+    if (visual) {
+      visual.parentNode.insertBefore(wrap, visual);
+      wrap.appendChild(float);
+      float.appendChild(visual);
+    }
 
-    const overlay = document.createElement('div');
-    overlay.className = 'stage-overlay';
-    overlay.innerHTML =
+    const band = document.createElement('div');
+    band.className = 'poster-band';
+    block.appendChild(band);
+
+    const meta = document.createElement('div');
+    meta.className = 'poster-meta';
+    meta.innerHTML =
       `<div class="project-counter">${p.counter || ''}</div>` +
-      `<h3 class="project-name">${p.name || ''}</h3>` +
-      `<p class="project-desc">${p.desc || ''}</p>` +
-      `<div class="project-tags">${(p.tags || []).map(tagHTML).join('')}</div>` +
-      projectActionsHTML(p, i);
-    block.appendChild(overlay);
+      `<div class="poster-meta-chips">` +
+        (p.status ? `<span class="poster-chip poster-status">${p.status}</span>` : '') +
+        (p.meta || []).map(m => `<span class="poster-chip">${m}</span>`).join('') +
+      `</div>`;
+    block.appendChild(meta);
 
-    media.push(wrap); glows.push(glow); overlays.push(overlay);
+    const panel = document.createElement('div');
+    panel.className = 'poster-panel';
+    panel.innerHTML =
+      `<div class="poster-stats">${(p.stats || []).map(s =>
+        `<div class="poster-stat${s.word ? ' stat-word' : ''}"><b>${s.num}</b><small>${s.label}</small></div>`).join('')}</div>` +
+      `<div class="poster-info">` +
+        `<p class="project-desc">${p.desc || ''}</p>` +
+        `<div class="project-tags">${(p.tags || []).map(tagHTML).join('')}</div>` +
+        projectActionsHTML(p, i) +
+      `</div>`;
+    block.appendChild(panel);
+
+    return {
+      block, glow,
+      castItems: gsap.utils.toArray(cast.children),
+      chars: gsap.utils.toArray(title.querySelectorAll('.pt-char')),
+      title, media: wrap, float, band, meta,
+      panel,
+      stats: gsap.utils.toArray(panel.querySelectorAll('.poster-stat')),
+      info:  gsap.utils.toArray(panel.querySelectorAll('.poster-info > *')),
+    };
   });
 
   stage.classList.add('cinematic');
 
-  // Center scroll rail: a coral→accent fill + comet head that glide down the
-  // gutter with scroll. Positions are GSAP-eased off the pinned timeline so the
-  // rail feels smooth rather than snapping frame-to-frame.
+  // Edge scroll rail: coral→accent fill + comet head, GSAP-eased off the
+  // pinned timeline so the rail glides rather than snapping.
   const rail      = document.getElementById('proj-rail');
   const railFill  = document.getElementById('proj-rail-fill');
   const railComet = document.getElementById('proj-rail-comet');
@@ -1005,26 +1052,42 @@ function initProjectsScroll() {
       n.classList.toggle('current', i === idx);
     });
     blocks.forEach((b, i) => b.classList.toggle('is-active', i === idx));
-    playProjectTL(idx); // run only the active project's mockup loop
+    playProjectTL(idx); // run only the active project's ambient loops
   }
 
-  // Resting state: project 1 visible but small (ready to expand), rest hidden.
-  blocks.forEach((b, i) => gsap.set(b, { autoAlpha: i === 0 ? 1 : 0 }));
-  media.forEach(m  => gsap.set(m, { scale: 0.6, transformOrigin: '50% 50%' }));
-  glows.forEach(g  => gsap.set(g, { scale: 0.7, opacity: 0.22 }));
-  overlays.forEach(o => gsap.set(o, { autoAlpha: 0, y: 36 }));
+  // Resting state: everything parked at its phase-A start so the first
+  // scrolled pixel begins the arrival (scrub owns all of these tweens).
+  layers.forEach((L, i) => {
+    gsap.set(L.block, { autoAlpha: i === 0 ? 1 : 0 });
+    gsap.set(L.media, { xPercent: -50, yPercent: -50, y: 80, scale: 0.82, autoAlpha: 0 });
+    gsap.set(L.title, { yPercent: -50 });
+    gsap.set(L.chars, { yPercent: 60, autoAlpha: 0 });
+    gsap.set(L.castItems, { y: 24, autoAlpha: 0 });
+    gsap.set(L.meta, { autoAlpha: 0 });
+    gsap.set(L.glow, { scale: 0.7, opacity: 0.22 });
+    gsap.set(L.band, { xPercent: -120, autoAlpha: 0 });
+    gsap.set(L.stats, { y: 40, autoAlpha: 0 });
+    gsap.set(L.info,  { y: 30, autoAlpha: 0 });
+  });
   setActive(0);
 
-  // One scrubbed timeline. Each project owns a 1-unit beat at integer position
-  // i: expand + parallax glow + overlay reveal, then (all but the last) contract
-  // and fade as the next takes over. Beats at integer times let us map the
-  // progress dots straight off tl.time().
+  // Ambient idle float on the inner wrapper, registered per project so only
+  // the active beat animates (chat pipeline loops join the same registry).
+  layers.forEach((L, i) => {
+    const floatTl = gsap.timeline({ repeat: -1, yoyo: true, paused: true })
+      .to(L.float, { y: -8, duration: 3.2, ease: 'sine.inOut' });
+    registerProjectTL(i, floatTl);
+  });
+
+  // One scrubbed master timeline; each project owns the 2-unit beat
+  // [2i, 2i+2): phase A poster arrival, dwell, phase B band sweep + data
+  // layer, dwell, then handoff to the next poster.
   const tl = gsap.timeline({
     defaults: { ease: 'none' },
     scrollTrigger: {
       trigger: '.projects-stage',
       start: 'top top',
-      end: () => '+=' + (blocks.length * Math.max(window.innerHeight, 620)),
+      end: () => '+=' + Math.round(blocks.length * 1.75 * Math.max(window.innerHeight, 620)),
       scrub: true,
       pin: '.projects-stage',
       pinSpacing: true,
@@ -1033,26 +1096,48 @@ function initProjectsScroll() {
       onRefresh: () => { if (rail) railH = rail.offsetHeight; },
       onUpdate: () => {
         const p = tl.progress();
-        setActive(Math.min(blocks.length - 1, Math.max(0, Math.floor(tl.time()))));
+        setActive(Math.min(blocks.length - 1, Math.max(0, Math.floor(tl.time() / 2))));
         if (fillTo)  fillTo(p);
         if (cometTo) cometTo(p * railH);
       },
     },
   });
 
-  blocks.forEach((b, i) => {
-    const m = media[i], g = glows[i], o = overlays[i];
-    tl.to(b, { autoAlpha: 1, duration: 0.18 }, i)
-      .fromTo(m, { scale: 0.6 }, { scale: 1, duration: 0.5, ease: 'power2.out' }, i)
-      .fromTo(g, { scale: 0.7, opacity: 0.22 }, { scale: 1.08, opacity: 0.5, duration: 0.5 }, i)
-      .fromTo(o, { autoAlpha: 0, y: 36 }, { autoAlpha: 1, y: 0, duration: 0.32, ease: 'power3.out' }, i + 0.28);
+  layers.forEach((L, i) => {
+    const t = i * 2;
+
+    /* Phase A — poster arrival */
+    tl.to(L.block, { autoAlpha: 1, duration: 0.15 }, t)
+      .to(L.chars, { yPercent: 0, autoAlpha: 1, duration: 0.5, ease: 'power3.out',
+                     stagger: { each: 0.02, from: 'center' } }, t + 0.05)
+      .to(L.castItems, { y: 0, autoAlpha: 1, duration: 0.35, stagger: 0.05 }, t + 0.05)
+      .to(L.glow, { scale: 1.05, opacity: 0.5, duration: 0.6 }, t + 0.10)
+      .to(L.media, { y: 0, scale: 1, autoAlpha: 1, duration: 0.55, ease: 'power2.out' }, t + 0.15)
+      .to(L.meta, { autoAlpha: 1, duration: 0.3 }, t + 0.20);
+
+    /* Phase B — band sweep + data layer (title recedes, media makes room) */
+    tl.to(L.band, { autoAlpha: 0.85, duration: 0.08 }, t + 0.95)
+      .to(L.band, { xPercent: 120, duration: 0.5 }, t + 0.95)
+      .to(L.band, { autoAlpha: 0, duration: 0.12 }, t + 1.33)
+      .to(L.title, { yPercent: -64, autoAlpha: 0.25, duration: 0.5 }, t + 1.05)
+      .to(L.media, { y: -60, scale: 0.88, duration: 0.5 }, t + 1.05)
+      .to(L.stats, { y: 0, autoAlpha: 1, duration: 0.35, ease: 'power3.out', stagger: 0.08 }, t + 1.15)
+      .to(L.info,  { y: 0, autoAlpha: 1, duration: 0.3,  ease: 'power3.out', stagger: 0.06 }, t + 1.28);
+
+    /* Handoff — all but the last poster fly out past the camera */
     if (i < blocks.length - 1) {
-      tl.to(o, { autoAlpha: 0, y: -24, duration: 0.18, ease: 'power2.in' }, i + 0.78)
-        .to(m, { scale: 1.12, duration: 0.22, ease: 'power2.in' }, i + 0.78)
-        .to(g, { opacity: 0.15, duration: 0.22 }, i + 0.78)
-        .to(b, { autoAlpha: 0, duration: 0.20, ease: 'power2.in' }, i + 0.80);
+      tl.to([L.panel, L.meta], { autoAlpha: 0, y: -30, duration: 0.15, ease: 'power2.in' }, t + 1.80)
+        .to(L.chars, { yPercent: -40, autoAlpha: 0, duration: 0.15, stagger: 0.006 }, t + 1.82)
+        .to(L.castItems, { autoAlpha: 0, duration: 0.12 }, t + 1.82)
+        .to(L.media, { scale: 1.1, autoAlpha: 0, duration: 0.15, ease: 'power2.in' }, t + 1.85)
+        .to(L.glow, { opacity: 0.15, duration: 0.15 }, t + 1.85)
+        .to(L.block, { autoAlpha: 0, duration: 0.12 }, t + 1.88);
     }
   });
+
+  // Pad the last beat so the final poster dwells in its phase-B state
+  // before the pin releases (total duration = blocks.length * 2).
+  tl.to({}, { duration: 0.01 }, blocks.length * 2 - 0.01);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -1083,8 +1168,14 @@ function initProjectsMobile() {
     const card = document.createElement('div');
     card.className = 'pm-info';
     card.innerHTML =
-      `<div class="project-counter">${p.counter}</div>` +
-      `<h3 class="project-name">${p.name}</h3>` +
+      `<div class="pm-head">` +
+        `<div class="project-counter">${p.counter}</div>` +
+        (p.status ? `<span class="poster-chip poster-status">${p.status}</span>` : '') +
+      `</div>` +
+      `<h3 class="pm-poster">${p.poster || ''}</h3>` +
+      `<p class="pm-cast">${(p.cast || []).join(', ')}</p>` +
+      `<div class="pm-stats">${(p.stats || []).map(s =>
+        `<div class="poster-stat${s.word ? ' stat-word' : ''}"><b>${s.num}</b><small>${s.label}</small></div>`).join('')}</div>` +
       `<p class="project-desc">${p.desc}</p>` +
       `<div class="project-tags">${p.tags.map(tagHTML).join('')}</div>` +
       projectActionsHTML(p, i);
@@ -1095,7 +1186,7 @@ function initProjectsMobile() {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   CASE STUDY MODAL (Auditly Pro deep-dive)
+   CASE STUDY MODAL (per-project deep-dives)
 ───────────────────────────────────────────────────────── */
 function initCaseStudyModal() {
   const modal = document.getElementById('cs-modal');
@@ -1115,6 +1206,7 @@ function initCaseStudyModal() {
       scrollEl.innerHTML = renderCaseStudy(cs);
       modal.setAttribute('aria-labelledby', 'cs-title');
     }
+    if (PROJECTS[index]) applyAccent(modal, PROJECTS[index]); // theme the modal per project
     lastFocus = document.activeElement;
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
@@ -1152,23 +1244,23 @@ function initCaseStudyModal() {
 /* ─────────────────────────────────────────────────────────────
    PIPELINE NODE ANIMATION (cycling active state)
 ───────────────────────────────────────────────────────── */
-/* Registry of per-project mockup timelines so the cinematic stage plays only
-   the active project's animation and pauses the rest (one loop at a time). */
+/* Registry of per-project ambient timelines (media float, chat pipeline
+   loops); the cinematic stage plays only the active project's loops and
+   pauses the rest. A project can own several, so each slot is an array. */
 const projectTL = {};
 let activeProjectIdx = -1;
 function registerProjectTL(index, tl) {
-  projectTL[index] = tl;
+  (projectTL[index] = projectTL[index] || []).push(tl);
   const cinematic = document.querySelector('.projects-stage.cinematic');
-  // Non-cinematic (mobile/reduced bail) → every mockup just plays. Cinematic →
+  // Non-cinematic (mobile/reduced bail) → every loop just plays. Cinematic →
   // only project 0 starts; the rest wait for playProjectTL to activate them.
-  if (!cinematic || index === 0) tl.play(0); else tl.pause(0);
+  if (!cinematic || index === Math.max(0, activeProjectIdx)) tl.play(0); else tl.pause(0);
 }
 function playProjectTL(index) {
   if (index === activeProjectIdx) return; // only act when the active project changes
   activeProjectIdx = index;
   Object.keys(projectTL).forEach(k => {
-    const tl = projectTL[k];
-    if (+k === index) tl.restart(); else tl.pause();
+    projectTL[k].forEach(tl => { if (+k === index) tl.restart(); else tl.pause(); });
   });
 }
 /* Glossy sheen-sweep layer (prepended so the real last-child keeps its bottom
@@ -1182,7 +1274,7 @@ function addSheen(mockup) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   CHAT MOCKUPS (02–04) — GSAP loop: staggered message reveal, then
+   CHAT MOCKUPS (03-05) — GSAP loop: staggered message reveal, then
    a pulse travels down the pipeline lighting nodes in sequence.
 ───────────────────────────────────────────────────────── */
 function initPipelineAnimation() {
@@ -1233,82 +1325,6 @@ function initPipelineAnimation() {
 
     registerProjectTL(index, tl);
   });
-}
-
-/* ─────────────────────────────────────────────────────────────
-   AUDITLY MOCKUP — animated "thinking" audit process
-   Cycles: scrape → analyze → SEO checks → report, then fills
-   the Conversion / SEO / UX score bars, holds, and loops.
-───────────────────────────────────────────────────────── */
-function initAuditMockup() {
-  const mockup = document.querySelector('.audit-mockup');
-  if (!mockup) return;
-  const block = mockup.closest('.project-visual-block');
-  const index = block ? +block.dataset.project : 0;
-  addSheen(mockup);
-
-  const stagesWrap = mockup.querySelector('.audit-stages');
-  const stages = gsap.utils.toArray(mockup.querySelectorAll('.audit-stage'));
-  const scoresWrap = mockup.querySelector('.audit-scores');
-  const bars = gsap.utils.toArray(mockup.querySelectorAll('.audit-score-fill'));
-  const nums = gsap.utils.toArray(mockup.querySelectorAll('.audit-score-num'));
-  const runBtn = mockup.querySelector('.audit-run');
-  if (!stages.length || !scoresWrap) return;
-
-  const targets = bars.map(b => +(b.dataset.score || 0));
-
-  // Reduced motion: render the finished report statically, skip the cycle.
-  if (PREFERS_REDUCED_MOTION) {
-    stages.forEach(s => { s.classList.remove('active'); s.classList.add('done'); });
-    if (runBtn) runBtn.classList.remove('running');
-    scoresWrap.classList.add('show');
-    bars.forEach((b, i) => { b.style.width = targets[i] + '%'; });
-    nums.forEach((n, i) => { n.textContent = targets[i]; });
-    return;
-  }
-
-  // Scan-line that sweeps the stage list while the audit "thinks".
-  let scan = mockup.querySelector('.audit-scan');
-  if (!scan && stagesWrap) { scan = document.createElement('div'); scan.className = 'audit-scan'; stagesWrap.appendChild(scan); }
-
-  const tl = gsap.timeline({ repeat: -1, repeatDelay: 1.6, paused: true });
-
-  // Reset to a clean "before audit" state at the top of every loop.
-  tl.add(() => {
-    stages.forEach(s => s.classList.remove('active', 'done'));
-    scoresWrap.classList.remove('show');
-    bars.forEach(b => { b.style.width = '0%'; });
-    nums.forEach(n => { n.textContent = '0'; });
-    if (runBtn) runBtn.classList.add('running');
-    if (scan) gsap.set(scan, { opacity: 0, top: 0 });
-  }, 0);
-
-  // Scan sweep down the stage list.
-  if (scan && stagesWrap) {
-    tl.fromTo(scan, { opacity: 0, top: 0 }, { opacity: 0.9, duration: 0.25 }, 0.1)
-      .to(scan, { top: () => Math.max(0, stagesWrap.offsetHeight - 38), duration: stages.length * 0.7, ease: 'none' }, 0.15)
-      .to(scan, { opacity: 0, duration: 0.3 }, '>-0.1');
-  }
-
-  // Stages tick: spinner active, then checked done.
-  stages.forEach((stage, i) => {
-    const t = 0.3 + i * 0.7;
-    tl.add(() => { stages.forEach(s => s.classList.remove('active')); stage.classList.add('active'); }, t)
-      .add(() => { stage.classList.remove('active'); stage.classList.add('done'); }, t + 0.62);
-  });
-
-  // Reveal scores, then fill bars while the numbers count up.
-  const afterStages = 0.3 + stages.length * 0.7 + 0.2;
-  tl.add(() => { if (runBtn) runBtn.classList.remove('running'); scoresWrap.classList.add('show'); }, afterStages);
-  bars.forEach((bar, i) => {
-    const prox = { w: 0 };
-    tl.to(prox, {
-      w: targets[i], duration: 0.95, ease: 'power2.out',
-      onUpdate: () => { bar.style.width = prox.w + '%'; if (nums[i]) nums[i].textContent = Math.round(prox.w); },
-    }, afterStages + 0.1 + i * 0.18);
-  });
-
-  registerProjectTL(index, tl);
 }
 
 /* ─────────────────────────────────────────────────────────────

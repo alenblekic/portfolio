@@ -1131,25 +1131,26 @@ img { display: block; max-width: 100%; }
 .projects-stage { position: relative; }
 .projects-stage.cinematic { height: 100vh; overflow: hidden; }
 .projects-stage.cinematic .projects-scroll { position: absolute; inset: 0; padding: 0; }
+/* Each block is a full-bleed layered poster: giant title behind (z1), the
+   media centerpiece in front of the letters (z2), a diagonal band that sweeps
+   through on phase B (z4), the bottom data panel (z3) and top meta (z5). */
 .projects-stage.cinematic .project-visual-block {
   position: absolute;
   inset: 0;
   min-height: 0;
   margin: 0;
-  padding: 0 clamp(32px, 6vw, 96px);
-  display: grid;
-  /* copy left · center scroll-rail gutter · media right */
-  grid-template-columns: minmax(0, 1fr) clamp(56px, 7vw, 110px) minmax(0, 1fr);
-  align-items: stretch;
-  gap: clamp(20px, 3vw, 48px);
+  padding: 0;
+  display: block;
   perspective: 1100px;
 }
+/* Shared horizontal inset for the poster layers */
+.projects-stage.cinematic .project-visual-block { --px: clamp(32px, 6vw, 96px); }
 /* Vivid animated gradient-mesh backdrop (in the project's accent family).
    Container opacity/scale is driven by GSAP per scroll beat; the inner blobs
    drift on their own CSS loops (auto-paused offscreen / under reduced motion). */
 .stage-glow {
   position: absolute;
-  left: 78%; top: 50%; /* sits behind the right-hand media */
+  left: 50%; top: 52%; /* sits behind the centered poster media */
   width: min(880px, 62vw);
   height: min(760px, 80vh);
   transform: translate(-50%, -50%);
@@ -1182,57 +1183,180 @@ img { display: block; max-width: 100%; }
 @keyframes mesh-a { 0%,100% { transform: translate(0,0) scale(1); }    50% { transform: translate(14%,9%) scale(1.18); } }
 @keyframes mesh-b { 0%,100% { transform: translate(0,0) scale(1.06); } 50% { transform: translate(-12%,11%) scale(0.9); } }
 @keyframes mesh-c { 0%,100% { transform: translate(0,0) scale(0.95); } 50% { transform: translate(9%,-11%) scale(1.12); } }
-.stage-media {
-  position: relative;
-  z-index: 1;
-  grid-column: 3;
-  grid-row: 1;
-  align-self: center;
-  justify-self: center;
-  width: 100%;
-  max-width: 600px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Media centerpiece: absolutely centered, slightly below the title's optical
+   center so the giant letters peek out on both sides (movie-poster occlusion).
+   GSAP owns this element's transform (xPercent/yPercent centering + scroll
+   beats); the ambient float lives on the inner .media-float wrapper. */
+.projects-stage.cinematic .stage-media {
+  position: absolute;
+  z-index: 2;
+  left: 50%; top: 52%;
+  width: min(680px, 46vw);
   will-change: transform;
 }
-.stage-media .project-mockup { width: 100%; max-width: none; }
-/* Left half = a full-height panel of copy that fills the page side */
-.stage-overlay {
-  position: relative;
-  grid-column: 1;
-  grid-row: 1;
-  z-index: 3;
-  align-self: stretch;
+.media-float { will-change: transform; }
+.stage-media .project-mockup,
+.stage-media .poster-shot { width: 100%; max-width: none; }
+
+/* ── Poster layers (injected by initProjectsScroll) ─────────── */
+/* Cast row: the tech "starring" strip across the top */
+.poster-cast {
+  position: absolute;
+  z-index: 1;
+  top: clamp(72px, 11vh, 118px);
+  left: var(--px); right: var(--px);
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.poster-cast span {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--grey);
+  white-space: nowrap;
+  will-change: transform;
+}
+/* Giant poster title: sits behind the media, letters peek on both sides */
+.poster-title {
+  position: absolute;
+  z-index: 1;
+  left: 0; right: 0;
+  top: 38%;
+  transform: translateY(-50%);
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(4rem, 10.5vw, 11.5rem);
+  line-height: 0.92;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  text-align: center;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--white) 88%, var(--accent));
+  text-shadow: 0 0 60px color-mix(in srgb, var(--accent) 28%, transparent);
+  pointer-events: none;
+}
+.pt-word { display: inline-block; white-space: nowrap; }
+.pt-word + .pt-word { margin-left: 0.22em; }
+.pt-char { display: inline-block; will-change: transform; }
+/* Top meta cluster: counter + status + genre chips, poster corner style */
+.poster-meta {
+  position: absolute;
+  z-index: 5;
+  top: clamp(110px, 17vh, 170px);
+  right: var(--px);
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  text-align: right;
+}
+.poster-meta .project-counter { margin-bottom: 0; font-size: 0.86rem; }
+.poster-meta-chips { display: flex; gap: 8px; }
+.poster-chip {
+  font-family: var(--font-display);
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 40px;
+  border: 1px solid color-mix(in srgb, var(--accent) 38%, transparent);
+  color: color-mix(in srgb, var(--white) 70%, var(--accent));
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+.poster-chip.poster-status {
+  color: var(--bg);
+  font-weight: 700;
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+/* Diagonal striped band that sweeps through during the phase-B reveal */
+.poster-band {
+  position: absolute;
+  z-index: 4;
+  left: -20%;
+  width: 140%;
+  height: clamp(56px, 8vh, 96px);
+  top: 56%;
+  transform: rotate(-8deg);
+  background: repeating-linear-gradient(90deg,
+    var(--accent) 0 2px, transparent 2px 18px);
+  opacity: 0;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+/* Bottom data panel: stats trio + description/tags/actions */
+.poster-panel {
+  position: absolute;
+  z-index: 3;
+  left: var(--px); right: var(--px);
+  bottom: clamp(26px, 5vh, 54px);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(24px, 4vw, 72px);
+}
+.poster-stats { display: flex; gap: clamp(12px, 1.6vw, 26px); }
+.poster-stat {
+  width: clamp(86px, 8.5vw, 118px);
+  height: clamp(86px, 8.5vw, 118px);
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 6%, rgba(10, 10, 10, 0.55));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  text-align: left;
-  max-width: 580px;
+  gap: 3px;
+  padding: 10px;
+  text-align: center;
+  will-change: transform;
 }
-.stage-overlay .project-counter { font-size: 0.9rem; margin-bottom: 20px; }
-.stage-overlay .project-name {
-  font-size: clamp(2.2rem, 4.4vw, 3.6rem);
-  line-height: 1.05;
-  margin-bottom: 22px;
+.poster-stat b {
+  font-family: var(--font-display);
+  font-size: clamp(1.3rem, 1.9vw, 1.8rem);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--white);
 }
-.stage-overlay .project-desc {
-  font-size: 1.02rem;
+.poster-stat.stat-word b { font-size: clamp(0.95rem, 1.3vw, 1.2rem); letter-spacing: 0.08em; }
+.poster-stat small {
+  font-size: 0.56rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   color: var(--grey);
-  line-height: 1.75;
-  margin-bottom: 28px;
-  max-width: 520px;
+  line-height: 1.35;
+  max-width: 9ch;
 }
-.stage-overlay .project-tags { margin-bottom: 26px; }
+.poster-info { max-width: 640px; }
+/* GSAP owns these opacities on the scrubbed timeline; the base .project-desc
+   CSS transition would fight it (double-animated fade). */
+.poster-info .project-desc { transition: none; }
+.poster-info .project-desc {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  margin-bottom: 18px;
+  max-width: 58ch;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.poster-info .project-tags { margin-bottom: 16px; }
 
-/* Left-panel + tags adopt the active project's accent (each block carries its
+/* Poster copy + tags adopt the active project's accent (each block carries its
    own --accent, so the colour shifts naturally as projects crossfade). */
 .project-visual-block .project-counter {
   color: var(--accent);
   text-shadow: 0 0 14px color-mix(in srgb, var(--accent) 45%, transparent);
-}
-.stage-overlay .project-name {
-  text-shadow: 0 0 38px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 .project-visual-block .tag {
   color: var(--accent);
@@ -1241,21 +1365,21 @@ img { display: block; max-width: 100%; }
 }
 .project-visual-block .project-casestudy { color: var(--accent); }
 .project-visual-block .project-link { border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
-/* ── Center scroll rail (cinematic only) ───────────────────
-   A vertical track sitting in the gutter between the copy (left) and the
-   media (right). A coral→accent fill grows with scroll and a comet dot rides
-   its head. The fill/comet positions are GSAP-eased (quickTo) off the pinned
-   timeline's progress so the rail glides rather than snapping. */
+/* ── Edge scroll rail (cinematic only) ───────────────────
+   A vertical track riding the left edge of the poster. A coral→accent fill
+   grows with scroll and a comet dot rides its head. The fill/comet positions
+   are GSAP-eased (quickTo) off the pinned timeline's progress so the rail
+   glides rather than snapping. */
 .proj-rail { display: none; }
 .projects-stage.cinematic .proj-rail {
   display: block;
   position: absolute;
-  left: 50%;
+  left: clamp(26px, 3vw, 52px);
   top: 50%;
   transform: translate(-50%, -50%);
   height: clamp(220px, 44vh, 380px);
   width: 2px;
-  z-index: 5;
+  z-index: 6;
   pointer-events: none;
 }
 .proj-rail-track {
@@ -1297,7 +1421,7 @@ img { display: block; max-width: 100%; }
     0 0 24px 5px color-mix(in srgb, var(--accent) 35%, transparent);
   will-change: transform;
 }
-/* Nodes ride the track at 0 / 33 / 66 / 100% */
+/* Nodes ride the track at 0 / 25 / 50 / 75 / 100% */
 .proj-progress-node {
   position: absolute;
   left: 50%;
@@ -1311,9 +1435,10 @@ img { display: block; max-width: 100%; }
   transition: border-color var(--transition), box-shadow var(--transition);
 }
 .proj-progress-node:nth-of-type(1) { top: 0%; }
-.proj-progress-node:nth-of-type(2) { top: 33.333%; }
-.proj-progress-node:nth-of-type(3) { top: 66.666%; }
-.proj-progress-node:nth-of-type(4) { top: 100%; }
+.proj-progress-node:nth-of-type(2) { top: 25%; }
+.proj-progress-node:nth-of-type(3) { top: 50%; }
+.proj-progress-node:nth-of-type(4) { top: 75%; }
+.proj-progress-node:nth-of-type(5) { top: 100%; }
 .proj-progress-node.active {
   border-color: var(--accent);
   box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 45%, transparent);
@@ -1326,7 +1451,7 @@ img { display: block; max-width: 100%; }
 }
 .proj-progress-node i {
   position: absolute;
-  right: calc(100% + 14px);
+  left: calc(100% + 14px);
   top: 50%;
   transform: translateY(-50%);
   font-family: var(--font-mono);
@@ -1399,9 +1524,38 @@ img { display: block; max-width: 100%; }
   padding: 16px 0;
   perspective: 1100px; /* 3D space for the tilt effect */
 }
+/* Static mini-poster card (mobile / reduced-motion path) */
 .pm-info { width: 100%; max-width: 720px; }
-.pm-info .project-counter { margin-bottom: 14px; }
-.pm-info .project-name { font-size: clamp(1.5rem, 4vw, 2rem); margin-bottom: 16px; }
+.pm-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.pm-head .project-counter { margin-bottom: 0; }
+.pm-poster {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2.2rem, 10vw, 3.8rem);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--white) 88%, var(--accent));
+  text-shadow: 0 0 32px color-mix(in srgb, var(--accent) 26%, transparent);
+  margin-bottom: 8px;
+}
+.pm-cast {
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--grey);
+  margin-bottom: 16px;
+}
+.pm-stats { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+.pm-stats .poster-stat { width: 88px; height: 88px; }
 .pm-info .project-desc { margin-bottom: 20px; }
 .project-mockup {
   position: relative;
@@ -1492,15 +1646,71 @@ img { display: block; max-width: 100%; }
 }
 /* Parallax depth: inner containers keep a 3D context; the padded content
    floats forward so the tilt reads as real depth without poking the edges. */
-.mockup-header, .chat-window, .audit-body, .pipeline-flow,
-.audit-stages, .audit-scores {
+.mockup-header, .chat-window, .pipeline-flow {
   transform-style: preserve-3d;
 }
 .mockup-title, .mockup-dot { transform: translateZ(22px); }
 .chat-msg { transform: translateZ(16px); }
 .pipeline-node { transform: translateZ(14px); }
-.audit-url-bar, .audit-scores { transform: translateZ(18px); }
-.audit-stage { transform: translateZ(12px); }
+
+/* ── Poster screenshot frame (live apps) ──────────────────────
+   Same glass recipe as .project-mockup, but clipped: a real screenshot
+   fills the frame, with the cursor-following glare on top. */
+.poster-shot {
+  position: relative;
+  margin: 0;
+  width: 100%;
+  max-width: 720px;
+  aspect-ratio: 1200 / 750;   /* reserves space before the image loads */
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 16px;
+  overflow: hidden;
+  background: #0d0e12;
+  box-shadow:
+    0 34px 90px -34px rgba(0,0,0,0.85),
+    0 0 0 1px rgba(255,255,255,0.04),
+    0 0 80px -30px var(--accent);
+  will-change: transform;
+  transition: border-color var(--transition), box-shadow var(--transition),
+              transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.poster-shot img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+.poster-shot::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  background: linear-gradient(157deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02) 24%, transparent 46%);
+  pointer-events: none;
+}
+.poster-shot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  background: radial-gradient(240px circle at var(--mx, 50%) var(--my, 26%), rgba(255,255,255,0.16), transparent 62%);
+  mix-blend-mode: soft-light;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+.poster-shot:hover::after { opacity: 1; }
+.poster-shot.tilting { transition: border-color var(--transition), box-shadow var(--transition); }
+.poster-shot:hover {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow:
+    0 34px 90px -34px rgba(0,0,0,0.85),
+    0 0 0 1px rgba(255,255,255,0.05),
+    0 0 100px -24px var(--accent);
+}
 .mockup-header {
   display: flex;
   align-items: center;
@@ -1717,9 +1927,10 @@ img { display: block; max-width: 100%; }
   max-width: 860px;
   max-height: 88vh;
   background: var(--bg-card);
-  border: 1px solid var(--border-red);
+  border: 1px solid color-mix(in srgb, var(--accent, var(--red)) 40%, transparent);
   border-radius: 16px;
-  box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 60px var(--red-glow-sm);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.6),
+              0 0 60px color-mix(in srgb, var(--accent, var(--red)) 18%, transparent);
   overflow: hidden;
   transform: translateY(20px) scale(0.985);
   transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
@@ -1752,16 +1963,19 @@ img { display: block; max-width: 100%; }
   font-weight: 600;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--red);
-  text-shadow: 0 0 10px var(--red-glow);
+  color: var(--accent, var(--red));
+  text-shadow: 0 0 10px color-mix(in srgb, var(--accent, var(--red)) 45%, transparent);
   margin-bottom: 14px;
 }
 .cs-title {
   font-family: var(--font-display);
-  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-size: clamp(2.1rem, 4.4vw, 3.1rem);
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
   margin-bottom: 18px;
+  text-shadow: 0 0 44px color-mix(in srgb, var(--accent, var(--red)) 24%, transparent);
 }
 .cs-lead {
   font-size: 1.02rem;
@@ -1770,7 +1984,7 @@ img { display: block; max-width: 100%; }
   max-width: 64ch;
   margin-bottom: 8px;
 }
-.cs-lead em { color: var(--red); font-style: normal; font-weight: 600; }
+.cs-lead em { color: var(--accent, var(--red)); font-style: normal; font-weight: 600; }
 .cs-h3 {
   font-family: var(--font-display);
   font-size: 1.15rem;
@@ -1811,9 +2025,12 @@ img { display: block; max-width: 100%; }
   color: var(--grey);
   letter-spacing: 0.02em;
 }
-.cs-node-split { border-color: var(--border-red); box-shadow: 0 0 14px var(--red-glow-sm); }
-.cs-node-end { border-color: var(--red); color: var(--red); }
-.cs-arrow { display: flex; align-items: center; color: var(--red); opacity: 0.55; font-size: 0.9rem; }
+.cs-node-split {
+  border-color: color-mix(in srgb, var(--accent, var(--red)) 45%, transparent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--accent, var(--red)) 20%, transparent);
+}
+.cs-node-end { border-color: var(--accent, var(--red)); color: var(--accent, var(--red)); }
+.cs-arrow { display: flex; align-items: center; color: var(--accent, var(--red)); opacity: 0.55; font-size: 0.9rem; }
 
 /* decisions */
 .cs-decisions {
@@ -1822,19 +2039,41 @@ img { display: block; max-width: 100%; }
   gap: 18px;
   margin-top: 20px;
 }
+.cs-decisions { counter-reset: cs-decision; }
 .cs-decision {
-  padding: 20px;
+  position: relative;
+  padding: 20px 20px 20px 58px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--bg-card-2);
   transition: border-color var(--transition), transform var(--transition);
 }
-.cs-decision:hover { border-color: var(--border-red); transform: translateY(-2px); }
+/* Circled poster-style numbering */
+.cs-decision::before {
+  counter-increment: cs-decision;
+  content: counter(cs-decision, decimal-leading-zero);
+  position: absolute;
+  left: 16px; top: 18px;
+  width: 30px; height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--accent, var(--red)) 55%, transparent);
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--accent, var(--red));
+}
+.cs-decision:hover {
+  border-color: color-mix(in srgb, var(--accent, var(--red)) 42%, transparent);
+  transform: translateY(-2px);
+}
 .cs-decision h4 {
   font-family: var(--font-display);
   font-size: 0.98rem;
   font-weight: 600;
-  color: var(--red);
+  color: var(--accent, var(--red));
   margin-bottom: 8px;
 }
 .cs-decision p { font-size: 0.88rem; line-height: 1.65; color: #B8B8B8; }
@@ -1856,7 +2095,20 @@ img { display: block; max-width: 100%; }
   margin-top: 18px;
 }
 
-.cs-cta { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 40px; }
+.cs-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 40px;
+  padding-top: 26px;
+  /* striped accent divider echoing the poster band */
+  border-top: 0;
+  background:
+    repeating-linear-gradient(90deg,
+      color-mix(in srgb, var(--accent, var(--red)) 55%, transparent) 0 2px,
+      transparent 2px 14px)
+    top / 100% 2px no-repeat;
+}
 .cs-cta .project-link { margin-top: 0; }
 .cs-link-ghost { background: transparent; border-color: var(--border); color: var(--grey); }
 .cs-link-ghost:hover { color: var(--white); }
@@ -1873,161 +2125,6 @@ body.cs-open { overflow: hidden; }
   .cs-flow .cs-arrow { transform: rotate(90deg); justify-content: center; }
 }
 
-/* ── Auditly mockup — live audit "thinking" process ───────── */
-.audit-body { padding: 20px; display: flex; flex-direction: column; gap: 18px; min-height: 320px; }
-.audit-url-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-}
-.audit-url-icon { width: 16px; height: 16px; color: var(--accent); flex-shrink: 0; }
-.audit-url {
-  flex: 1;
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  color: var(--grey);
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.audit-run {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent);
-  padding: 5px 12px;
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
-  border-radius: 5px;
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
-  flex-shrink: 0;
-  transition: color var(--transition), box-shadow var(--transition);
-}
-.audit-run.running {
-  color: var(--white);
-  box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 40%, transparent);
-  animation: audit-run-pulse 1s ease-in-out infinite;
-}
-@keyframes audit-run-pulse { 0%,100% { opacity: 0.7; } 50% { opacity: 1; } }
-
-.audit-stages { display: flex; flex-direction: column; gap: 11px; position: relative; }
-.audit-stage {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  color: var(--grey);
-  opacity: 0.4;
-  transition: opacity var(--transition), color var(--transition);
-}
-/* Accent scan-line sweeping the audit body while it "thinks" (GSAP-driven) */
-.audit-scan {
-  position: absolute;
-  left: -8px; right: -8px;
-  height: 38px;
-  top: 0;
-  border-radius: 8px;
-  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--accent) 22%, transparent), transparent);
-  box-shadow: 0 0 24px color-mix(in srgb, var(--accent) 35%, transparent);
-  opacity: 0;
-  pointer-events: none;
-}
-.audit-stage-icon {
-  width: 16px; height: 16px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  border: 1.6px solid var(--border);
-  position: relative;
-  transition: border-color var(--transition);
-}
-.audit-stage.active {
-  opacity: 1;
-  color: var(--white);
-}
-.audit-stage.active .audit-stage-icon {
-  border-color: var(--accent);
-  border-top-color: transparent;
-  animation: audit-spin 0.7s linear infinite;
-}
-@keyframes audit-spin { to { transform: rotate(360deg); } }
-.audit-stage.done { opacity: 1; color: var(--white); }
-.audit-stage.done .audit-stage-icon {
-  border-color: var(--accent);
-  background: var(--accent);
-  animation: none;
-}
-.audit-stage.done .audit-stage-icon::after {
-  content: '';
-  position: absolute;
-  left: 4.5px; top: 1.5px;
-  width: 4px; height: 8px;
-  border: solid var(--bg);
-  border-width: 0 1.8px 1.8px 0;
-  transform: rotate(45deg);
-}
-
-.audit-scores {
-  display: flex;
-  flex-direction: column;
-  gap: 13px;
-  margin-top: auto;
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
-  opacity: 0;
-  transform: translateY(8px);
-  transition: opacity 0.5s ease, transform 0.5s ease;
-}
-.audit-scores.show { opacity: 1; transform: translateY(0); }
-.audit-score-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 6px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--grey);
-  letter-spacing: 0.04em;
-}
-.audit-score-num {
-  font-family: var(--font-mono);
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--accent);
-}
-.audit-score-track {
-  height: 6px;
-  border-radius: 4px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  overflow: hidden;
-}
-.audit-score-track { position: relative; }
-.audit-score-fill {
-  height: 100%;
-  width: 0%;
-  border-radius: 4px;
-  background: linear-gradient(90deg, var(--accent-2), var(--accent));
-  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 40%, transparent);
-  position: relative;
-  overflow: hidden;
-}
-/* Shimmer streak running along the filled bar */
-.audit-score-fill::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
-  transform: translateX(-100%);
-  animation: score-shimmer 1.8s ease-in-out infinite;
-}
-@keyframes score-shimmer { 0% { transform: translateX(-100%); } 60%,100% { transform: translateX(220%); } }
 
 /* ── Experience ───────────────────────────────────────────── */
 .experience-section {
@@ -2631,7 +2728,7 @@ body.cs-open { overflow: hidden; }
   .about-visual { height: 280px; }
   /* Projects use the stacked-card layout by default (see base rules); the
      cinematic stage only activates above 960px without reduced motion. */
-  .pm-info .project-name { font-size: clamp(1.5rem, 6vw, 2rem); }
+  .pm-poster { font-size: clamp(2rem, 9vw, 3rem); }
 }
 
 @media (max-width: 960px) {

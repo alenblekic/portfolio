@@ -293,10 +293,11 @@
     <div class="container-wide">
       <p class="section-label">What I've Built</p>
       <h2 class="section-title">AI Projects</h2>
-      <!-- Cinematic stage: JS (initProjectsScroll) pins this and expands one
-           project mockup at a time. Per-project copy (counter/name/tags/actions)
-           is injected as an overlay from PROJECTS[]. Mobile / reduced-motion
-           fall back to stacked cards via initProjectsMobile. -->
+      <!-- Cinematic stage: JS (initProjectsScroll) pins this and plays each
+           project as a movie-poster story (giant title + visual, then a band
+           sweep reveals stats/desc/CTAs). Poster copy is injected from
+           PROJECTS[]. Mobile / reduced-motion fall back to static mini-poster
+           cards via initProjectsMobile. -->
       <div class="projects-stage" id="projects-stage">
 
         <!-- The five project centerpieces; each becomes a cinematic poster layer.

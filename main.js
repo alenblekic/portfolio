@@ -611,34 +611,89 @@ function initScrollAnimations() {
 ───────────────────────────────────────────────────────── */
 const PROJECTS = [
   {
-    counter: '01 / 04',
-    name: 'Auditly Pro — AI-Powered Website Audit Tool',
+    counter: '01 / 05',
+    name: 'Auditly Pro: AI-Powered Website Audit Tool',
+    poster: 'AUDITLY',
     desc: 'Full-stack AI web app that scrapes any landing page and returns a scored audit across Conversion, SEO, and UX, plus the 5 highest-impact fixes referencing the real page content. Hybrid engine: deterministic SEO checks + Claude judgment, streamed live progress, Redis-cached shareable reports, with SSRF guards and per-IP rate limiting.',
+    cast: ['Next.js 15', 'TypeScript', 'Claude', 'Firecrawl', 'Redis', 'Vercel'],
+    meta: ['Full-stack AI', 'Flagship'],
+    stats: [
+      { num: '3',   label: 'Scored categories' },
+      { num: '24h', label: 'Report cache TTL' },
+      { num: '60s', label: 'Streamed audit window' },
+    ],
+    status: 'Live',
     tags: ['Next.js 15', 'TypeScript', 'Claude', 'Firecrawl', 'Redis', 'Vercel'],
     link: 'https://auditly-pro.vercel.app/',
     caseStudy: true,
     accent: '#F5A623', accent2: '#E8623C',
   },
   {
-    counter: '02 / 04',
+    counter: '02 / 05',
+    name: 'Resume Intelligence Engine: Multi-Persona AI Resume Analysis',
+    poster: 'RESUME INTEL',
+    desc: 'Next.js 16 app that reads a resume and a job description, then runs five AI personas in parallel (Recruiter, ATS, Hiring Manager, Technical Interviewer, Compensation) on Groq\'s llama-3.3-70b. Files are parsed entirely client-side (pdfjs, mammoth), results land in a cyberpunk HUD dashboard, and the whole flow is bilingual English/Swedish.',
+    cast: ['Next.js 16', 'TypeScript', 'Groq', 'Tailwind CSS', 'Framer Motion', 'Zustand'],
+    meta: ['AI analysis', 'Bilingual'],
+    stats: [
+      { num: '5',   label: 'Parallel AI personas' },
+      { num: '2',   label: 'Languages (EN / SV)' },
+      { num: '70B', label: 'Model parameters' },
+    ],
+    status: 'Live',
+    tags: ['Next.js 16', 'TypeScript', 'Groq', 'Tailwind CSS', 'Framer Motion', 'Zustand'],
+    link: 'https://resumeint-eng.vercel.app/',
+    github: 'https://github.com/alenblekic/Resume',
+    caseStudy: true,
+    accent: '#54E38E', accent2: '#38BDF8',
+  },
+  {
+    counter: '03 / 05',
     name: 'Voiceflow Lead Capture &amp; Automation Agent',
+    poster: 'LEAD CAPTURE',
     desc: 'Full conversational AI agent that captures structured lead data and triggers multi-step workflows via Make.com API integration. Built conditional logic for data validation, email capture, and automated follow-up processes.',
+    cast: ['Voiceflow', 'Make.com'],
+    meta: ['Conversational AI', 'Automation'],
+    stats: [
+      { num: '4', label: 'Pipeline steps' },
+      { num: '2', label: 'Validated fields' },
+      { num: 'Demo', label: 'Build status', word: true },
+    ],
+    status: 'Demo',
     tags: ['Voiceflow', 'Make.com'],
     caseStudy: true,
     accent: '#4F8DFF', accent2: '#6C5CE7',
   },
   {
-    counter: '03 / 04',
+    counter: '04 / 05',
     name: 'AI Customer Support Automation Agent',
+    poster: 'SUPPORT AGENT',
     desc: 'AI customer support workflow agent handling user queries, delivering contextual responses, and triggering backend automation via Make.com. Implemented conditional refund workflow with data routing into Airtable for ticket processing.',
+    cast: ['Voiceflow', 'Make.com', 'Airtable'],
+    meta: ['Conversational AI', 'Ticketing'],
+    stats: [
+      { num: '3', label: 'Intents handled' },
+      { num: '4', label: 'Pipeline steps' },
+      { num: 'Demo', label: 'Build status', word: true },
+    ],
+    status: 'Demo',
     tags: ['Voiceflow', 'Make.com', 'Airtable'],
     caseStudy: true,
     accent: '#2DD4BF', accent2: '#22D3EE',
   },
   {
-    counter: '04 / 04',
+    counter: '05 / 05',
     name: 'AI Product Recommendation Agent <span style="font-size:0.8em;opacity:0.7">(Perfume Brand)</span>',
+    poster: 'PERFUME AI',
     desc: 'Intent-based product recommendation logic with category recognition (e.g. "club", "date night") to dynamically suggest relevant products. API-based email capture and automated data routing via Make.com; structured support intake routed into Airtable.',
+    cast: ['Voiceflow', 'Make.com', 'Airtable'],
+    meta: ['Conversational AI', 'E-commerce'],
+    stats: [
+      { num: '3', label: 'Occasion intents' },
+      { num: '4', label: 'Pipeline steps' },
+      { num: 'Demo', label: 'Build status', word: true },
+    ],
+    status: 'Demo',
     tags: ['Voiceflow', 'Make.com', 'Airtable'],
     caseStudy: true,
     accent: '#E879C9', accent2: '#C084FC',
@@ -656,15 +711,14 @@ function applyAccent(el, p) {
 /* ─────────────────────────────────────────────────────────────
    CASE STUDIES — deep-dive content for each project, rendered into
    the shared #cs-modal by renderCaseStudy(). Same index order as
-   PROJECTS. Auditly (0) keeps its original copy verbatim and is the
-   only one with live + code CTAs; the automation agents are demo
-   builds with no external links.
+   PROJECTS. Auditly (0) and Resume Intelligence (1) carry live + code
+   CTAs; the automation agents are demo builds with no external links.
 ───────────────────────────────────────────────────────── */
 const CASE_STUDIES = [
   {
     eyebrow: 'Case Study · Featured Project',
     title: 'Auditly Pro',
-    lead: 'An LLM is great at <em>judgment</em> and unreliable at <em>facts</em>. So I split the audit engine in two: deterministic code measures everything that has a right answer, and the model only weighs in where opinion is the point. Here\'s how it\'s built — and why.',
+    lead: 'An LLM is great at <em>judgment</em> and unreliable at <em>facts</em>. So I split the audit engine in two: deterministic code measures everything that has a right answer, and the model only weighs in where opinion is the point. Here\'s how it\'s built, and why.',
     flowHead: 'Architecture',
     flowSub: 'One request, streamed end to end inside Vercel\'s 60s function window.',
     flow: [
@@ -678,18 +732,48 @@ const CASE_STUDIES = [
     ],
     decisionsHead: 'Engineering decisions',
     decisions: [
-      { h: 'Hybrid scoring', p: 'SEO is graded by deterministic code — titles, headings, alt text, canonical tags, HTTPS — because those are facts with a correct answer. The LLM is reserved for conversion and UX, where judgment is the whole point. This keeps scores reproducible and kills hallucinated metrics.' },
-      { h: 'Streamed progress (NDJSON)', p: 'Audits take 20–40s, and a silent 40-second request feels broken (and risks Vercel\'s 60s timeout). The endpoint streams <code>scraping → analyzing → done</code> events as NDJSON, so the UI shows live progress instead of a frozen spinner.' },
-      { h: 'Redis caching', p: 'Reports are cached in Upstash Redis with a 24h TTL and served from a stable <code>/report/[id]</code> URL. Repeat views and shares skip a full re-scrape + re-analysis — saving both latency and API cost.' },
-      { h: 'Security hardening', p: 'The app fetches arbitrary user-supplied URLs — textbook SSRF territory — so requests pass an SSRF guard before any fetch. Add per-IP rate limiting to curb abuse and Zod schema validation on every input boundary, and the public endpoint stays safe to expose.' },
-      { h: 'Provider abstraction', p: 'The AI engine is swappable between Groq, Gemini, and Claude via a single environment variable. No vendor lock-in — I can route around cost, rate limits, or outages without touching application code.' },
+      { h: 'Hybrid scoring', p: 'SEO is graded by deterministic code (titles, headings, alt text, canonical tags, HTTPS) because those are facts with a correct answer. The LLM is reserved for conversion and UX, where judgment is the whole point. This keeps scores reproducible and kills hallucinated metrics.' },
+      { h: 'Streamed progress (NDJSON)', p: 'Audits take 20-40s, and a silent 40-second request feels broken (and risks Vercel\'s 60s timeout). The endpoint streams <code>scraping → analyzing → done</code> events as NDJSON, so the UI shows live progress instead of a frozen spinner.' },
+      { h: 'Redis caching', p: 'Reports are cached in Upstash Redis with a 24h TTL and served from a stable <code>/report/[id]</code> URL. Repeat views and shares skip a full re-scrape + re-analysis, saving both latency and API cost.' },
+      { h: 'Security hardening', p: 'The app fetches arbitrary user-supplied URLs, textbook SSRF territory, so requests pass an SSRF guard before any fetch. Add per-IP rate limiting to curb abuse and Zod schema validation on every input boundary, and the public endpoint stays safe to expose.' },
+      { h: 'Provider abstraction', p: 'The AI engine is swappable between Groq, Gemini, and Claude via a single environment variable. No vendor lock-in: I can route around cost, rate limits, or outages without touching application code.' },
       { h: 'Print-to-PDF, not Chromium', p: 'PDF export uses a browser-native print stylesheet instead of bundling serverless Chromium. It drops a heavyweight, slow-cold-start dependency while still producing a clean, shareable document.' },
     ],
     tradeoffHead: 'Trade-offs &amp; scope',
-    tradeoff: 'Shipped as a demo MVP: single-page analysis only, and the LLM portion is as good as the model behind it. Multi-page crawling and historical report tracking are the obvious next steps — deliberately cut to ship something real and focused first.',
+    tradeoff: 'Shipped as a demo MVP: single-page analysis only, and the LLM portion is as good as the model behind it. Multi-page crawling and historical report tracking are the obvious next steps, deliberately cut to ship something real and focused first.',
     cta: {
       live: 'https://auditly-pro.vercel.app/',
       code: 'https://github.com/alenblekic/ai-website-audit-agent',
+    },
+  },
+  {
+    eyebrow: 'Case Study · AI Analysis Engine',
+    title: 'Resume Intelligence Engine',
+    lead: 'One reviewer gives you one opinion, but hiring is five different judgments happening at once. This engine runs five AI personas in parallel over the same resume and job description, then puts their verdicts side by side so the disagreements become the insight.',
+    flowHead: 'Architecture',
+    flowSub: 'The resume never leaves the browser: only extracted text reaches the model.',
+    flow: [
+      { label: 'Upload resume', sub: 'PDF / DOCX / TXT' },
+      { label: 'Parse client-side', sub: 'pdfjs · mammoth' },
+      { label: 'Job description in' },
+      { label: '5 persona prompts', sub: 'in parallel', cls: 'cs-node-split' },
+      { label: 'Groq', sub: 'llama-3.3-70b' },
+      { label: 'HUD dashboard', cls: 'cs-node-end' },
+    ],
+    decisionsHead: 'Engineering decisions',
+    decisions: [
+      { h: 'Client-side parsing', p: 'Resumes are personal documents, so pdfjs and mammoth extract text entirely in the browser. No file upload endpoint exists at all: only the extracted text is sent for analysis, which removes a whole class of storage and privacy problems.' },
+      { h: 'Five parallel personas', p: 'Recruiter, ATS, Hiring Manager, Technical Interviewer, and Compensation each get an isolated system prompt with JSON-validated output. They run concurrently via <code>Promise.allSettled</code>, so one failed persona degrades gracefully instead of sinking the whole analysis.' },
+      { h: 'Disagreement as signal', p: 'The personas are deliberately not averaged into one score. A resume the ATS loves but the recruiter skims past is exactly the finding a candidate needs, so the dashboard surfaces each verdict separately.' },
+      { h: 'Groq for interactive latency', p: 'Five 70B-class completions have to feel like one analysis, not five. Groq\'s inference speed keeps the full parallel batch inside an interactive wait, at a cost that works for a free public demo.' },
+      { h: 'One store, one wizard', p: 'The multi-step flow (upload, job description, analysis, results) lives in a single Zustand store instead of prop-drilled state, so any step can read progress and the HUD can animate between phases cleanly.' },
+      { h: 'Bilingual by design', p: 'English and Swedish share one locale layer rather than duplicated pages, and the persona prompts respond in the selected language, so the Swedish job market gets a first-class experience.' },
+    ],
+    tradeoffHead: 'Trade-offs &amp; scope',
+    tradeoff: 'Single provider (Groq) rather than the swappable engine Auditly has, no accounts or saved history, and parsing quality is bounded by the source file. All deliberate: the goal was to ship the five-persona analysis loop first and let persistence come later.',
+    cta: {
+      live: 'https://resumeint-eng.vercel.app/',
+      code: 'https://github.com/alenblekic/Resume',
     },
   },
   {
@@ -810,6 +894,8 @@ const TAG_ICONS = {
   'Vercel': { vb: '0 0 24 24', d: 'm12 1.608 12 20.784H0Z' },
   'Make.com': { vb: '0 0 24 24', d: 'M13.38 3.498c-.27 0-.511.19-.566.465L9.85 18.986a.578.578 0 0 0 .453.678l4.095.826a.58.58 0 0 0 .682-.455l2.963-15.021a.578.578 0 0 0-.453-.678l-4.096-.826a.589.589 0 0 0-.113-.012zm-5.876.098a.576.576 0 0 0-.516.318L.062 17.697a.575.575 0 0 0 .256.774l3.733 1.877a.578.578 0 0 0 .775-.258l6.926-13.781a.577.577 0 0 0-.256-.776L7.762 3.658a.571.571 0 0 0-.258-.062zm11.74.115a.576.576 0 0 0-.576.576v15.426c0 .318.258.578.576.578h4.178a.58.58 0 0 0 .578-.578V4.287a.578.578 0 0 0-.578-.576Z' },
   'Airtable': { vb: '0 0 24 24', d: 'M11.992 1.966c-.434 0-.87.086-1.28.257L1.779 5.917c-.503.208-.49.908.012 1.116l8.982 3.558a3.266 3.266 0 0 0 2.454 0l8.982-3.558c.503-.196.503-.908.012-1.116l-8.957-3.694a3.255 3.255 0 0 0-1.272-.257zM23.4 8.056a.589.589 0 0 0-.222.045l-10.012 3.877a.612.612 0 0 0-.38.564v8.896a.6.6 0 0 0 .821.552L23.62 18.1a.583.583 0 0 0 .38-.551V8.653a.6.6 0 0 0-.6-.596zM.676 8.095a.644.644 0 0 0-.48.19C.086 8.396 0 8.53 0 8.69v8.355c0 .442.515.737.908.54l6.27-3.006.307-.147 2.969-1.436c.466-.22.43-.908-.061-1.092L.883 8.138a.57.57 0 0 0-.207-.044z' },
+  'Tailwind CSS': { vb: '0 0 24 24', d: 'M12.001 4.8c-3.2 0-5.2 1.6-6 4.8 1.2-1.6 2.6-2.2 4.2-1.8.913.228 1.565.89 2.288 1.624C13.666 10.618 15.027 12 18.001 12c3.2 0 5.2-1.6 6-4.8-1.2 1.6-2.6 2.2-4.2 1.8-.913-.228-1.565-.89-2.288-1.624C16.337 6.182 14.976 4.8 12.001 4.8zm-6 7.2c-3.2 0-5.2 1.6-6 4.8 1.2-1.6 2.6-2.2 4.2-1.8.913.228 1.565.89 2.288 1.624 1.177 1.194 2.538 2.576 5.512 2.576 3.2 0 5.2-1.6 6-4.8-1.2 1.6-2.6 2.2-4.2 1.8-.913-.228-1.565-.89-2.288-1.624C10.337 13.382 8.976 12 6.001 12z' },
+  'Framer Motion': { vb: '0 0 24 24', d: 'M4 0h16v8h-8zM4 8h8l8 8H4zM4 16h8v8z' },
   'Voiceflow': { vb: '0 0 24.5 18.4', d: 'M20.2134 12.1919C20.3748 11.2353 20.4536 10.2074 20.4536 9.18316C20.4536 8.15905 20.3748 7.13105 20.2134 6.17439C21.7629 6.40328 22.9559 7.66383 22.9559 9.18316C22.9559 10.7026 21.7629 11.9632 20.2134 12.1919ZM18.7391 12.0306C17.7374 11.7831 13.637 9.37072 13.4494 9.26572V9.10061C13.637 8.99561 17.7374 6.58339 18.7391 6.33572C18.8779 7.15361 18.968 8.10272 18.968 9.18316C18.968 10.2636 18.8779 11.2128 18.7391 12.0306ZM17.3398 15.3883C17.2348 15.4596 17.1072 15.4446 16.9909 15.3845C16.3719 15.0506 14.1172 11.5279 14.1172 11.4078L14.226 11.2916C14.9013 11.7605 16.6158 12.9273 18.3978 13.4749C18.0713 14.5142 17.6699 15.1669 17.3398 15.3883ZM16.9909 2.98183C17.1072 2.92183 17.2348 2.90683 17.3398 2.97805C17.6699 3.19939 18.0713 3.85217 18.3978 4.89139C16.6158 5.43917 14.9013 6.60583 14.226 7.07483L14.1172 6.9585C14.1172 6.8385 16.3719 3.31572 16.9909 2.98183ZM10.9959 9.26572C10.8083 9.37072 6.70789 11.7831 5.70622 12.0306C5.56733 11.2128 5.47733 10.2636 5.47733 9.18316C5.47733 8.10272 5.56733 7.15361 5.70622 6.33572C6.70789 6.58339 10.8083 8.99561 10.9959 9.10061V9.26572ZM7.45444 15.3845C7.33811 15.4446 7.21055 15.4596 7.10555 15.3883C6.77533 15.1669 6.374 14.5142 6.04755 13.4749C7.82955 12.9273 9.544 11.7605 10.2193 11.2916L10.3281 11.4078C10.3281 11.5279 8.07344 15.0506 7.45444 15.3845ZM7.10555 2.97805C7.21055 2.90683 7.33811 2.92183 7.45444 2.98183C8.07344 3.31572 10.3281 6.8385 10.3281 6.9585L10.2193 7.07483C9.544 6.60583 7.82955 5.43917 6.04755 4.89139C6.374 3.85217 6.77533 3.19939 7.10555 2.97805ZM4.23178 12.1919C2.68244 11.9632 1.48944 10.7026 1.48944 9.18316C1.48944 7.66383 2.68244 6.40328 4.23178 6.17439C4.07044 7.13105 3.99167 8.15905 3.99167 9.18316C3.99167 10.2074 4.07044 11.2353 4.23178 12.1919ZM19.8759 4.65505C19.3243 2.75672 18.3978 1.40239 17.1072 1.40239C15.3852 1.40239 13.0254 6.23817 13.0254 6.23817L12.8717 6.20439L12.913 5.6605C12.9199 5.55628 12.9268 5.34261 12.9338 5.07339C12.9674 3.77161 12.953 2.46917 12.8943 1.16839L12.8433 0.0351646C12.8423 0.0151646 12.8259 -0.000613893 12.8058 -0.000613893H11.6394C11.6194 -0.000613893 11.6029 0.0151646 11.602 0.0351646L11.551 1.16839C11.4923 2.46917 11.4779 3.77161 11.5116 5.07339C11.5184 5.34261 11.5254 5.55628 11.5323 5.6605L11.5737 6.20439L11.4198 6.23817C11.4198 6.23817 9.06011 1.40239 7.33811 1.40239C6.04756 1.40239 5.12089 2.75672 4.56944 4.65505C2.03711 4.73761 0 6.73339 0 9.18316C0 11.6329 2.03711 13.6288 4.56944 13.7114C5.12089 15.6096 6.04756 16.9639 7.33811 16.9639C9.06011 16.9639 11.4198 12.1282 11.4198 12.1282L11.5737 12.1619L11.5323 12.7059C11.5254 12.8102 11.5184 13.0237 11.5116 13.2931C11.4779 14.5947 11.4923 15.8973 11.551 17.1981L11.602 18.3312C11.6029 18.3513 11.6194 18.3671 11.6394 18.3671H12.8058C12.8259 18.3671 12.8423 18.3513 12.8433 18.3312L12.8943 17.1981C12.953 15.8973 12.9674 14.5947 12.9338 13.2931C12.9268 13.0237 12.9199 12.8102 12.913 12.7059L12.8717 12.1619L13.0254 12.1282C13.0254 12.1282 15.3852 16.9639 17.1072 16.9639C18.3978 16.9639 19.3243 15.6096 19.8759 13.7114C22.4082 13.6288 24.4452 11.6329 24.4452 9.18316C24.4452 6.73339 22.4082 4.73761 19.8759 4.65505Z' },
 };
 
@@ -824,7 +910,13 @@ const TAG_COLORS = {
   'Make.com':   '#6D00CC',
   'Airtable':   '#18BFFF',
   'Voiceflow':  '#ffffff',
+  'Next.js 16':    '#ffffff',
+  'Tailwind CSS':  '#38BDF8',
+  'Framer Motion': '#ffffff',
 };
+/* Next.js 16 shares the Next.js mark; Groq and Zustand have no reliable
+   open brand SVG, so they render as text-only tags (same as Voiceflow). */
+TAG_ICONS['Next.js 16'] = TAG_ICONS['Next.js 15'];
 
 function tagHTML(name) {
   const ic = TAG_ICONS[name];

@@ -2638,7 +2638,9 @@ function initNebulaView() {
   /* Per-stop hue for the light-gate burst: the ring + a tinted core sprite
      take the arriving card's color. Project slots (2-5) are filled from
      PROJECTS[].accent in buildItems(); null slots fall back to coral. */
-  const STOP_HUES = ['#D97757', '#4EC9E8', null, null, null, null, '#8B7CF6', '#7FA7FF', '#D97757'];
+  /* 10 stops: name, about, 5 project slots (filled from PROJECTS[].accent
+     in buildItems), toolkit, certs, contact. */
+  const STOP_HUES = ['#D97757', '#4EC9E8', null, null, null, null, null, '#8B7CF6', '#7FA7FF', '#D97757'];
   const hueSprites = new Map();
   function hueGlow(hex) {
     if (!hex) return coreGlow;
@@ -3002,7 +3004,7 @@ function initNebulaView() {
         if (!p || !holder) return;
         holder.classList.add('nv-card');
         applyAccent(holder, p);
-        if (p.accent) STOP_HUES[2 + di] = p.accent; // projects are stops 2-5
+        if (p.accent) STOP_HUES[2 + di] = p.accent; // projects are stops 2-6
 
         const tags = (typeof tagHTML === 'function')
           ? p.tags.map(tagHTML).join('')
@@ -3013,6 +3015,7 @@ function initNebulaView() {
           { seed: 42, baseFrequency: '0.013 0.052', octaves: 6, surfaceScale: 2.2, elevation: 48 },
           { seed: 68, baseFrequency: '0.009 0.028', octaves: 5, surfaceScale: 3.0, elevation: 58 },
           { seed: 91, baseFrequency: '0.015 0.045', octaves: 6, surfaceScale: 2.0, elevation: 50 },
+          { seed: 133, baseFrequency: '0.011 0.038', octaves: 5, surfaceScale: 2.8, elevation: 56 },
         ];
         const planetSvg = nvPlanetSVG(p.accent || '#8B7CF6', PROJ_SURF[di] || PROJ_SURF[0]);
         holder.innerHTML =

@@ -301,8 +301,11 @@
       <div class="projects-stage" id="projects-stage">
 
         <!-- The five project centerpieces; each becomes a cinematic poster layer.
-             Live apps (0, 1) show real screenshots; the Voiceflow agents keep
-             their animated chat mockups. -->
+             Live apps (0, 1) show real screenshots; the Voiceflow agents show
+             a chromeless "live automation run": module nodes in open space,
+             curved wires, a traveling data packet + payload chips (GSAP loop
+             in initPipelineAnimation). Node/chip positions are viewBox
+             coordinates (720x420) expressed as percentages. -->
         <div class="projects-scroll">
 
           <!-- Project 01 - Auditly Pro (live screenshot) -->
@@ -323,132 +326,127 @@
 
           <!-- Project 03 -->
           <div class="project-visual-block" data-project="2">
-            <div class="project-mockup chat-mockup">
-              <div class="mockup-header">
-                <div class="mockup-dot red"></div>
-                <div class="mockup-dot yellow"></div>
-                <div class="mockup-dot green"></div>
-                <span class="mockup-title">Lead Capture Agent</span>
+            <div class="agent-flow" role="img" aria-label="Lead capture automation run: a Voiceflow conversation is validated, routed through Make.com and delivered to the team by email">
+              <div class="af-head">
+                <span class="af-sig"><i></i>Lead Capture Agent</span>
+                <span class="af-run">run 0482</span>
               </div>
-              <div class="chat-window" id="chat-01">
-                <div class="chat-msg bot">
-                  <div class="chat-avatar"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="color:#D97757"><path d="M7 3H4v8a8 8 0 0 0 16 0V3h-3v8a5 5 0 0 1-10 0V3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M4 7.5h3M17 7.5h3" stroke="currentColor" stroke-width="1.6"/></svg></div>
-                  <div class="chat-bubble">Hi! I can help connect you with our team. What's your name?</div>
+              <div class="af-canvas">
+                <svg class="af-wires" viewBox="0 0 720 420" aria-hidden="true">
+                  <path class="af-wire-base" d="M70,96 C150,96 175,288 255,288"/>
+                  <path class="af-wire-base" d="M255,288 C335,288 360,120 440,120"/>
+                  <path class="af-wire-base" d="M440,120 C515,120 535,300 606,300"/>
+                  <path class="af-wire" pathLength="1" d="M70,96 C150,96 175,288 255,288"/>
+                  <path class="af-wire" pathLength="1" d="M255,288 C335,288 360,120 440,120"/>
+                  <path class="af-wire" pathLength="1" d="M440,120 C515,120 535,300 606,300"/>
+                  <circle class="af-packet" r="5.5"/>
+                </svg>
+                <div class="af-node" style="left:9.72%; top:22.86%">
+                  <span class="af-node-dot"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-5 4v-4A1.5 1.5 0 0 1 4 14.5v-9Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span>
+                  <span class="af-node-label">Voiceflow</span>
                 </div>
-                <div class="chat-msg user">
-                  <div class="chat-bubble">Sarah Johnson</div>
+                <div class="af-node" style="left:35.42%; top:68.57%">
+                  <span class="af-node-dot"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="8.2" stroke="currentColor" stroke-width="1.6"/><path d="m8.6 12.2 2.3 2.3 4.5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                  <span class="af-node-label">Validate</span>
                 </div>
-                <div class="chat-msg bot">
-                  <div class="chat-avatar"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="color:#D97757"><path d="M7 3H4v8a8 8 0 0 0 16 0V3h-3v8a5 5 0 0 1-10 0V3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M4 7.5h3M17 7.5h3" stroke="currentColor" stroke-width="1.6"/></svg></div>
-                  <div class="chat-bubble">Great, Sarah! What's your business email?</div>
+                <div class="af-node" style="left:61.11%; top:28.57%">
+                  <span class="af-node-dot"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13.2 2.5 5 13.5h5.4L9.2 21.5l8.2-11h-5.4l1.2-8Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span>
+                  <span class="af-node-label">Make.com</span>
                 </div>
-                <div class="chat-msg user">
-                  <div class="chat-bubble">sarah@company.com</div>
+                <div class="af-node" style="left:84.17%; top:71.43%">
+                  <span class="af-node-dot"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3.5" y="5.5" width="17" height="13" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="m4.5 7.5 7.5 5.5 7.5-5.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                  <span class="af-node-label">Email</span>
                 </div>
-                <div class="chat-msg bot">
-                  <div class="chat-avatar"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="color:#D97757"><path d="M7 3H4v8a8 8 0 0 0 16 0V3h-3v8a5 5 0 0 1-10 0V3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M4 7.5h3M17 7.5h3" stroke="currentColor" stroke-width="1.6"/></svg></div>
-                  <div class="chat-bubble typing-active">Validating and routing your details<span class="typing-dots"><span>.</span><span>.</span><span>.</span></span></div>
-                </div>
+                <div class="af-chip" style="left:26.39%; top:9.52%"><i></i>Lead: Sarah Johnson</div>
+                <div class="af-chip" style="left:41.67%; top:94.29%"><i></i>sarah@company.com · verified</div>
+                <div class="af-chip" style="left:66.5%; top:11.43%"><i></i>Scenario run: 1.2s</div>
+                <div class="af-chip" style="left:75%; top:40%"><i></i>Team notified ✓</div>
               </div>
-              <div class="pipeline-flow">
-                <div class="pipeline-node active">Voiceflow</div>
-                <div class="pipeline-arrow">→</div>
-                <div class="pipeline-node">Validate</div>
-                <div class="pipeline-arrow">→</div>
-                <div class="pipeline-node">Make.com</div>
-                <div class="pipeline-arrow">→</div>
-                <div class="pipeline-node">Email</div>
-              </div>
+              <div class="af-status"><b>✓</b> completed in 1.2s · lead delivered</div>
             </div>
           </div>
 
-          <!-- Project 04 -->
+          <!-- Project 04 (wire layout mirrored vertically vs 03) -->
           <div class="project-visual-block" data-project="3">
-            <div class="project-mockup chat-mockup">
-              <div class="mockup-header">
-                <div class="mockup-dot red"></div>
-                <div class="mockup-dot yellow"></div>
-                <div class="mockup-dot green"></div>
-                <span class="mockup-title">Customer Support Agent</span>
+            <div class="agent-flow" role="img" aria-label="Customer support automation run: a Voiceflow ticket is classified, the refund workflow fires in Make.com and the case is logged to Airtable">
+              <div class="af-head">
+                <span class="af-sig"><i></i>Customer Support Agent</span>
+                <span class="af-run">run 1847</span>
               </div>
-              <div class="chat-window" id="chat-02">
-                <div class="chat-msg bot">
-                  <div class="chat-avatar"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="color:#4FB0C9"><path d="M5 12a7 7 0 0 1 14 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><rect x="3.5" y="12" width="3.5" height="6" rx="1.6" stroke="currentColor" stroke-width="1.6"/><rect x="17" y="12" width="3.5" height="6" rx="1.6" stroke="currentColor" stroke-width="1.6"/><path d="M19 18v.4a3.4 3.4 0 0 1-3.4 3.4H13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div>
-                  <div class="chat-bubble">Hello! How can I assist you today?</div>
+              <div class="af-canvas">
+                <svg class="af-wires" viewBox="0 0 720 420" aria-hidden="true">
+                  <path class="af-wire-base" d="M70,324 C150,324 175,132 255,132"/>
+                  <path class="af-wire-base" d="M255,132 C335,132 360,300 440,300"/>
+                  <path class="af-wire-base" d="M440,300 C515,300 535,120 606,120"/>
+                  <path class="af-wire" pathLength="1" d="M70,324 C150,324 175,132 255,132"/>
+                  <path class="af-wire" pathLength="1" d="M255,132 C335,132 360,300 440,300"/>
+                  <path class="af-wire" pathLength="1" d="M440,300 C515,300 535,120 606,120"/>
+                  <circle class="af-packet" r="5.5"/>
+                </svg>
+                <div class="af-node" style="left:9.72%; top:77.14%">
+                  <span class="af-node-dot"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-5 4v-4A1.5 1.5 0 0 1 4 14.5v-9Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span>
+                  <span class="af-node-label">Voiceflow</span>
                 </div>
-                <div class="chat-msg user">
-                  <div class="chat-bubble">I want to request a refund for order #4821</div>
+                <div class="af-node" style="left:35.42%; top:31.43%">
+                  <span class="af-node-dot"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="6.5" cy="5.5" r="2" stroke="currentColor" stroke-width="1.6"/><circle cx="17.5" cy="18.5" r="2" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 7.5v3.5a5 5 0 0 0 5 5h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+                  <span class="af-node-label">Logic</span>
                 </div>
-                <div class="chat-msg bot">
-                  <div class="chat-avatar"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="color:#4FB0C9"><path d="M5 12a7 7 0 0 1 14 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><rect x="3.5" y="12" width="3.5" height="6" rx="1.6" stroke="currentColor" stroke-width="1.6"/><rect x="17" y="12" width="3.5" height="6" rx="1.6" stroke="currentColor" stroke-width="1.6"/><path d="M19 18v.4a3.4 3.4 0 0 1-3.4 3.4H13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div>
-                  <div class="chat-bubble">I've found your order. Initiating the refund workflow now.</div>
+                <div class="af-node" style="left:61.11%; top:71.43%">
+                  <span class="af-node-dot"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13.2 2.5 5 13.5h5.4L9.2 21.5l8.2-11h-5.4l1.2-8Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span>
+                  <span class="af-node-label">Make.com</span>
                 </div>
-                <div class="chat-msg bot">
-                  <div class="chat-avatar"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="color:#4FB0C9"><path d="M5 12a7 7 0 0 1 14 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><rect x="3.5" y="12" width="3.5" height="6" rx="1.6" stroke="currentColor" stroke-width="1.6"/><rect x="17" y="12" width="3.5" height="6" rx="1.6" stroke="currentColor" stroke-width="1.6"/><path d="M19 18v.4a3.4 3.4 0 0 1-3.4 3.4H13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div>
-                  <div class="chat-bubble typing-active">Routing ticket to Airtable<span class="typing-dots"><span>.</span><span>.</span><span>.</span></span></div>
+                <div class="af-node" style="left:84.17%; top:28.57%">
+                  <span class="af-node-dot"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3.5" y="4.5" width="17" height="15" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 10h17M12 10v9.5" stroke="currentColor" stroke-width="1.6"/></svg></span>
+                  <span class="af-node-label">Airtable</span>
                 </div>
+                <div class="af-chip" style="left:26.39%; top:94.29%"><i></i>Ticket #4821: refund request</div>
+                <div class="af-chip" style="left:43.06%; top:6.19%"><i></i>Intent: refund · priority high</div>
+                <div class="af-chip" style="left:68%; top:93.33%"><i></i>Refund workflow triggered</div>
+                <div class="af-chip" style="left:73%; top:56%"><i></i>Logged to Airtable ✓</div>
               </div>
-              <div class="pipeline-flow">
-                <div class="pipeline-node active">Voiceflow</div>
-                <div class="pipeline-arrow">→</div>
-                <div class="pipeline-node">Logic</div>
-                <div class="pipeline-arrow">→</div>
-                <div class="pipeline-node">Make.com</div>
-                <div class="pipeline-arrow">→</div>
-                <div class="pipeline-node">Airtable</div>
-              </div>
+              <div class="af-status"><b>✓</b> completed in 0.9s · ticket resolved</div>
             </div>
           </div>
 
           <!-- Project 05 -->
           <div class="project-visual-block" data-project="4">
-            <div class="project-mockup chat-mockup">
-              <div class="mockup-header">
-                <div class="mockup-dot red"></div>
-                <div class="mockup-dot yellow"></div>
-                <div class="mockup-dot green"></div>
-                <span class="mockup-title">Perfume Recommendation Agent</span>
+            <div class="agent-flow" role="img" aria-label="Perfume recommendation run: quiz intent is matched to a fragrance, an offer email fires through Make.com and the subscriber lands in Airtable">
+              <div class="af-head">
+                <span class="af-sig"><i></i>Perfume Recommendation Agent</span>
+                <span class="af-run">run 0231</span>
               </div>
-              <div class="chat-window" id="chat-03">
-                <div class="chat-msg bot">
-                  <div class="chat-avatar"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="color:#E48FB0"><rect x="9.5" y="3" width="5" height="3" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M9 9.8a3 3 0 0 1 3-3 3 3 0 0 1 3 3V18a2.5 2.5 0 0 1-2.5 2.5h-1A2.5 2.5 0 0 1 9 18V9.8Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M17.5 5.5h.01M19.5 7.5h.01M17.5 9.5h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></div>
-                  <div class="chat-bubble">Welcome! What's the occasion: date night, club, or everyday?</div>
+              <div class="af-canvas">
+                <svg class="af-wires" viewBox="0 0 720 420" aria-hidden="true">
+                  <path class="af-wire-base" d="M70,96 C150,96 175,288 255,288"/>
+                  <path class="af-wire-base" d="M255,288 C335,288 360,120 440,120"/>
+                  <path class="af-wire-base" d="M440,120 C515,120 535,300 606,300"/>
+                  <path class="af-wire" pathLength="1" d="M70,96 C150,96 175,288 255,288"/>
+                  <path class="af-wire" pathLength="1" d="M255,288 C335,288 360,120 440,120"/>
+                  <path class="af-wire" pathLength="1" d="M440,120 C515,120 535,300 606,300"/>
+                  <circle class="af-packet" r="5.5"/>
+                </svg>
+                <div class="af-node" style="left:9.72%; top:22.86%">
+                  <span class="af-node-dot"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3.5v3.4M12 17.1v3.4M3.5 12h3.4M17.1 12h3.4M6 6l2.4 2.4M15.6 15.6 18 18M18 6l-2.4 2.4M8.4 15.6 6 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+                  <span class="af-node-label">Intent</span>
                 </div>
-                <div class="chat-msg user">
-                  <div class="chat-bubble">Date night, something romantic</div>
+                <div class="af-node" style="left:35.42%; top:68.57%">
+                  <span class="af-node-dot"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="8.2" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="3.2" stroke="currentColor" stroke-width="1.6"/></svg></span>
+                  <span class="af-node-label">Match</span>
                 </div>
-                <div class="chat-msg bot">
-                  <div class="chat-avatar"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="color:#E48FB0"><rect x="9.5" y="3" width="5" height="3" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M9 9.8a3 3 0 0 1 3-3 3 3 0 0 1 3 3V18a2.5 2.5 0 0 1-2.5 2.5h-1A2.5 2.5 0 0 1 9 18V9.8Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M17.5 5.5h.01M19.5 7.5h.01M17.5 9.5h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></div>
-                  <div class="chat-bubble">Perfect choice. I'd recommend <strong>Velvet Oud</strong> (deep, warm, and sensual) or <strong>Noir Rose</strong> for something elegant and floral. Both are bestsellers for date nights. 🖤</div>
+                <div class="af-node" style="left:61.11%; top:28.57%">
+                  <span class="af-node-dot"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13.2 2.5 5 13.5h5.4L9.2 21.5l8.2-11h-5.4l1.2-8Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span>
+                  <span class="af-node-label">Make.com</span>
                 </div>
-                <div class="chat-msg bot">
-                  <div class="chat-avatar"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="color:#E48FB0"><rect x="9.5" y="3" width="5" height="3" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M9 9.8a3 3 0 0 1 3-3 3 3 0 0 1 3 3V18a2.5 2.5 0 0 1-2.5 2.5h-1A2.5 2.5 0 0 1 9 18V9.8Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M17.5 5.5h.01M19.5 7.5h.01M17.5 9.5h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></div>
-                  <div class="chat-bubble">Would you like another recommendation?</div>
+                <div class="af-node" style="left:84.17%; top:71.43%">
+                  <span class="af-node-dot"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3.5" y="4.5" width="17" height="15" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 10h17M12 10v9.5" stroke="currentColor" stroke-width="1.6"/></svg></span>
+                  <span class="af-node-label">Airtable</span>
                 </div>
-                <div class="chat-msg user">
-                  <div class="chat-bubble">No, I love Velvet Oud!</div>
-                </div>
-                <div class="chat-msg bot">
-                  <div class="chat-avatar"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="color:#E48FB0"><rect x="9.5" y="3" width="5" height="3" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M9 9.8a3 3 0 0 1 3-3 3 3 0 0 1 3 3V18a2.5 2.5 0 0 1-2.5 2.5h-1A2.5 2.5 0 0 1 9 18V9.8Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M17.5 5.5h.01M19.5 7.5h.01M17.5 9.5h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></div>
-                  <div class="chat-bubble">Great taste! 🙌 Want to get exclusive discounts on Velvet Oud and new arrivals? Drop your email and we'll take care of the rest.</div>
-                </div>
-                <div class="chat-msg user">
-                  <div class="chat-bubble">sure, it's alex@gmail.com</div>
-                </div>
-                <div class="chat-msg bot">
-                  <div class="chat-avatar"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="color:#E48FB0"><rect x="9.5" y="3" width="5" height="3" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M9 9.8a3 3 0 0 1 3-3 3 3 0 0 1 3 3V18a2.5 2.5 0 0 1-2.5 2.5h-1A2.5 2.5 0 0 1 9 18V9.8Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M17.5 5.5h.01M19.5 7.5h.01M17.5 9.5h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></div>
-                  <div class="chat-bubble typing-active">Subscribing you now<span class="typing-dots"><span>.</span><span>.</span><span>.</span></span></div>
-                </div>
+                <div class="af-chip" style="left:27.08%; top:9.52%"><i></i>Mood: date night · romantic</div>
+                <div class="af-chip" style="left:44.44%; top:94.29%"><i></i>Top match: Velvet Oud · 94%</div>
+                <div class="af-chip" style="left:66.5%; top:11.43%"><i></i>Offer email queued</div>
+                <div class="af-chip" style="left:70.5%; top:40%"><i></i>alex@gmail.com subscribed ✓</div>
               </div>
-              <div class="pipeline-flow">
-                <div class="pipeline-node active">Intent</div>
-                <div class="pipeline-arrow">→</div>
-                <div class="pipeline-node">Match</div>
-                <div class="pipeline-arrow">→</div>
-                <div class="pipeline-node">Make.com</div>
-                <div class="pipeline-arrow">→</div>
-                <div class="pipeline-node">Airtable</div>
-              </div>
+              <div class="af-status"><b>✓</b> completed in 1.4s · subscriber added</div>
             </div>
           </div>
 

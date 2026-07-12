@@ -1196,18 +1196,8 @@ img { display: block; max-width: 100%; }
   will-change: transform;
 }
 .media-float { will-change: transform; }
-.stage-media .project-mockup,
+.stage-media .agent-flow,
 .stage-media .poster-shot { width: 100%; max-width: none; }
-/* Chat mockups are content-sized and breathe as the pipeline loop adds
-   bubbles (up to ~600px) — cap them inside the poster stage, anchored to
-   the bottom so the newest messages stay in frame and older ones clip off
-   the top like a live chat. (Costs the bubbles' translateZ parallax here:
-   overflow clipping flattens preserve-3d — acceptable inside the stage.) */
-.projects-stage.cinematic .stage-media .chat-window {
-  max-height: min(42vh, 380px);
-  overflow: hidden;
-  justify-content: flex-end;
-}
 
 /* ── Poster layers (injected by initProjectsScroll) ─────────── */
 /* Cast row: the tech "starring" strip across the top */
@@ -1287,6 +1277,93 @@ img { display: block; max-width: 100%; }
   border-color: var(--accent);
   box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 45%, transparent);
 }
+/* ── Live-chat HUD panel (bot posters, desktop cinematic only) ──
+   Injected by initProjectsScroll from PROJECTS[].chat; sits in the dead
+   zone on the right between the meta chips and the phase-B info panel.
+   Messages are revealed by the agent-flow run loop (.pc-msg tweens in
+   initPipelineAnimation). Decorative: no pointer events. Kept compact so
+   its bottom clears .poster-info at vh 720 (verified). */
+.poster-chat {
+  position: absolute;
+  z-index: 5;
+  right: var(--px);
+  top: clamp(180px, 28vh, 300px);
+  width: clamp(240px, 20vw, 320px);
+  padding: 12px 14px 14px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+  background: rgba(9, 10, 15, 0.8);
+  backdrop-filter: blur(6px);
+  box-shadow:
+    0 22px 50px -24px rgba(0,0,0,0.9),
+    0 0 44px -22px var(--accent);
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+.pc-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.pc-head i {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  animation: live-pip 2.2s ease-in-out infinite;
+}
+.pc-msg {
+  display: flex;
+  margin-top: 7px;
+}
+.pc-msg.user { justify-content: flex-end; }
+.pc-bubble {
+  max-width: 85%;
+  padding: 6px 11px;
+  border-radius: 11px;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--white);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+}
+.pc-msg.bot .pc-bubble { border-bottom-left-radius: 4px; }
+.pc-msg.user .pc-bubble {
+  border-bottom-right-radius: 4px;
+  background: color-mix(in srgb, var(--accent) 22%, #15161a);
+  border-color: color-mix(in srgb, var(--accent) 42%, transparent);
+}
+.pc-dots {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: 3px;
+}
+.pc-dots span {
+  animation: pc-dot 1.2s ease-in-out infinite;
+  opacity: 0;
+}
+.pc-dots span:nth-child(2) { animation-delay: 0.2s; }
+.pc-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes pc-dot {
+  0%, 60%, 100% { opacity: 0; transform: translateY(0); }
+  30%           { opacity: 1; transform: translateY(-2px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pc-head i, .pc-dots span { animation: none; }
+  .pc-dots span { opacity: 1; }
+}
+/* Fit guard: below ~1280 the 46vw media column crowds the right edge —
+   only show the panel where it verifiably fits without clipping. */
+@media (max-width: 1279px) {
+  .poster-chat { display: none; }
+}
+
 /* Diagonal striped band that sweeps through during the phase-B reveal */
 .poster-band {
   position: absolute;
@@ -1568,104 +1645,180 @@ img { display: block; max-width: 100%; }
 .pm-stats { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
 .pm-stats .poster-stat { width: 88px; height: 88px; }
 .pm-info .project-desc { margin-bottom: 20px; }
-.project-mockup {
+/* ── AGENT FLOW (03-05): chromeless live-automation-run composition ──
+   No window, no card: module nodes float in open space over the poster,
+   curved SVG wires connect them, a data packet rides the wires while
+   payload chips pop in (GSAP loop in initPipelineAnimation). Node and
+   chip positions are inline percentages of the 720x420 canvas. The
+   whole composition tilts via initCertTilt; chips/nodes translateZ for
+   depth. GSAP owns chip transforms (xPercent/yPercent centering + z set
+   in JS) — keep transform rules off .af-chip. */
+.agent-flow {
   position: relative;
-  background:
-    linear-gradient(157deg, rgba(255,255,255,0.06), rgba(255,255,255,0) 38%),
-    linear-gradient(180deg, #16171c 0%, #0d0e12 100%);
-  border: 1px solid rgba(255,255,255,0.09);
-  border-radius: 16px;
   width: 100%;
   max-width: 720px;
-  box-shadow:
-    0 34px 90px -34px rgba(0,0,0,0.85),
-    0 0 0 1px rgba(255,255,255,0.04),
-    0 0 80px -30px var(--accent);
-  transform-style: preserve-3d; /* no overflow:hidden — it would flatten the 3D */
+  transform-style: preserve-3d;
   will-change: transform;
-  transition: border-color var(--transition), box-shadow var(--transition),
-              transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
-/* Glossy sheen-sweep: an isolated overflow-clipped layer (does NOT clip the
-   mockup itself, so the 3D parallax survives). Streak is GSAP-driven. */
-.mockup-sheen {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 7;
-  transform: translateZ(42px);
+.agent-flow.tilting { transition: none; }
+.af-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
-.mockup-sheen span {
-  position: absolute;
-  top: -25%; left: 0;
-  width: 34%; height: 150%;
-  background: linear-gradient(105deg, transparent, rgba(255,255,255,0.16) 50%, transparent);
-  transform: translateX(-160%) skewX(-16deg);
-  will-change: transform;
-  animation: sheen-sweep 5.5s ease-in-out infinite;
+.af-sig {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--accent);
 }
-@keyframes sheen-sweep {
-  0%        { transform: translateX(-160%) skewX(-16deg); }
-  16%, 100% { transform: translateX(440%)  skewX(-16deg); }
+.af-sig i {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+  animation: live-pip 2.2s ease-in-out infinite;
 }
-/* Round the inner top/bottom pieces — replaces overflow:hidden, which would
-   otherwise collapse the parallax. */
-.project-mockup > .mockup-header {
-  border-top-left-radius: 15px;
-  border-top-right-radius: 15px;
+@keyframes live-pip {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
 }
-.project-mockup > :last-child {
-  border-bottom-left-radius: 15px;
-  border-bottom-right-radius: 15px;
+@media (prefers-reduced-motion: reduce) {
+  .af-sig i { animation: none; }
 }
-/* Glass surface: a static top sheen + a specular glare that follows the
-   cursor/tilt. Both ride the front face via translateZ. */
-.project-mockup::before,
-.project-mockup::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 16px;
-  pointer-events: none;
-  transform: translateZ(40px);
-}
-.project-mockup::before {
-  background: linear-gradient(157deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02) 24%, transparent 46%);
-  z-index: 5;
-}
-.project-mockup::after {
-  background: radial-gradient(240px circle at var(--mx, 50%) var(--my, 26%), rgba(255,255,255,0.16), transparent 62%);
-  mix-blend-mode: soft-light;
-  opacity: 0;
-  transition: opacity 0.35s ease;
-  z-index: 6;
-}
-.project-mockup:hover::after { opacity: 1; }
-/* While actively tracking the cursor, drop the transform transition so the
-   tilt follows in real time (matches cert/stat card behaviour). */
-.project-mockup.tilting {
-  transition: border-color var(--transition), box-shadow var(--transition);
-}
-.project-mockup:hover {
-  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
-  box-shadow:
-    0 34px 90px -34px rgba(0,0,0,0.85),
-    0 0 0 1px rgba(255,255,255,0.05),
-    0 0 100px -24px var(--accent);
-}
-/* Parallax depth: inner containers keep a 3D context; the padded content
-   floats forward so the tilt reads as real depth without poking the edges. */
-.mockup-header, .chat-window, .pipeline-flow {
+.af-run { color: var(--grey); opacity: 0.7; }
+.af-canvas {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 720 / 420;
   transform-style: preserve-3d;
 }
-.mockup-title, .mockup-dot { transform: translateZ(22px); }
-.chat-msg { transform: translateZ(16px); }
-.pipeline-node { transform: translateZ(14px); }
+.af-wires {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  overflow: visible;
+}
+.af-wire-base {
+  fill: none;
+  stroke: rgba(255,255,255,0.09);
+  stroke-width: 1.5;
+}
+/* Accent overlay wire: pathLength=1 dash trick draws it on when .lit */
+.af-wire {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0.9;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 60%, transparent));
+  transition: stroke-dashoffset 0.7s ease-in-out;
+}
+.af-wire.lit { stroke-dashoffset: 0; }
+/* Traveling data packet (GSAP moves cx/cy along the wire paths) */
+.af-packet {
+  fill: var(--accent);
+  opacity: 0;
+  filter: drop-shadow(0 0 8px var(--accent));
+}
+/* Module node: squircle chip + mono label beneath (anchored at center) */
+.af-node {
+  position: absolute;
+  width: 52px; height: 52px;
+  transform: translate(-50%, -50%) translateZ(18px);
+}
+.af-node-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%; height: 100%;
+  border-radius: 16px;
+  color: var(--grey);
+  background:
+    linear-gradient(157deg, rgba(255,255,255,0.07), rgba(255,255,255,0) 45%),
+    rgba(12,13,18,0.85);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 14px 30px -14px rgba(0,0,0,0.8);
+  transition: color var(--transition), border-color var(--transition),
+              box-shadow var(--transition);
+}
+.af-node-dot svg { width: 21px; height: 21px; }
+.af-node-label {
+  position: absolute;
+  top: calc(100% + 9px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 0.63rem;
+  letter-spacing: 0.06em;
+  color: var(--grey);
+  white-space: nowrap;
+  transition: color var(--transition);
+}
+/* visited steps stay softly lit; the current step burns bright */
+.af-node.done .af-node-dot {
+  color: color-mix(in srgb, var(--accent) 70%, white);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.af-node.active .af-node-dot {
+  color: var(--white);
+  border-color: var(--accent);
+  background:
+    radial-gradient(circle at 32% 26%, color-mix(in srgb, var(--accent) 38%, transparent), transparent 70%),
+    rgba(12,13,18,0.9);
+  box-shadow:
+    0 14px 30px -14px rgba(0,0,0,0.8),
+    0 0 26px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.af-node.active .af-node-label { color: var(--white); }
+/* Floating payload chip: glass pill with an accent pip */
+.af-chip {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, var(--border));
+  background: rgba(9,10,15,0.82);
+  backdrop-filter: blur(6px);
+  box-shadow:
+    0 16px 36px -18px rgba(0,0,0,0.9),
+    0 0 30px -14px var(--accent);
+  font-size: 0.74rem;
+  color: var(--white);
+  white-space: nowrap;
+  will-change: transform, opacity;
+}
+.af-chip i {
+  width: 6px; height: 6px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+.af-status {
+  width: fit-content;
+  margin: 16px auto 0;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  color: var(--grey);
+  opacity: 0;
+}
+.af-status b { color: var(--accent); font-weight: 600; }
 
 /* ── Poster screenshot frame (live apps) ──────────────────────
-   Same glass recipe as .project-mockup, but clipped: a real screenshot
+   Glass card frame, clipped: a real screenshot
    fills the frame, with the cursor-following glare on top. */
 .poster-shot {
   position: relative;
@@ -1722,140 +1875,6 @@ img { display: block; max-width: 100%; }
     0 0 0 1px rgba(255,255,255,0.05),
     0 0 100px -24px var(--accent);
 }
-.mockup-header {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 14px 18px;
-  background: var(--bg-card-2);
-  border-bottom: 1px solid var(--border);
-}
-.mockup-dot {
-  width: 11px; height: 11px;
-  border-radius: 50%;
-}
-.mockup-dot.red    { background: #FF5F57; }
-.mockup-dot.yellow { background: #FFBD2E; }
-.mockup-dot.green  { background: #27C93F; }
-.mockup-title {
-  margin-left: 8px;
-  font-family: var(--font-mono);
-  font-size: 0.74rem;
-  color: var(--grey);
-  font-weight: 400;
-  letter-spacing: 0.02em;
-}
-
-/* Chat window */
-.chat-window {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  min-height: 260px;
-}
-.chat-msg {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-.chat-msg.user { flex-direction: row-reverse; }
-.chat-avatar {
-  width: 32px; height: 32px;
-  border-radius: 50%;
-  background: var(--bg-card-2);
-  border: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: var(--white);
-  flex-shrink: 0;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
-}
-.chat-avatar svg { width: 18px; height: 18px; }
-.chat-bubble {
-  max-width: 75%;
-  padding: 10px 14px;
-  border-radius: 12px;
-  font-size: 0.85rem;
-  line-height: 1.5;
-  background: var(--bg-card-2);
-  border: 1px solid var(--border);
-  color: var(--white);
-}
-.chat-msg.user .chat-bubble {
-  background: color-mix(in srgb, var(--accent) 22%, #15161a);
-  border-color: color-mix(in srgb, var(--accent) 42%, transparent);
-  color: var(--white);
-}
-.typing-dots {
-  display: inline-flex;
-  gap: 3px;
-  margin-left: 4px;
-}
-.typing-dots span {
-  animation: typing-dot 1.2s ease-in-out infinite;
-  opacity: 0;
-}
-.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes typing-dot {
-  0%, 60%, 100% { opacity: 0; transform: translateY(0); }
-  30%           { opacity: 1; transform: translateY(-3px); }
-}
-
-/* Pipeline flow */
-.pipeline-flow {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 16px 20px;
-  background: rgba(255,255,255,0.015);
-  border-top: 1px solid var(--border);
-  flex-wrap: wrap;
-}
-.pipeline-node {
-  position: relative;
-  padding: 5px 12px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  font-weight: 400;
-  color: var(--grey);
-  letter-spacing: 0.02em;
-  background: rgba(0,0,0,0.25);
-  transition: color var(--transition), border-color var(--transition), box-shadow var(--transition);
-}
-.pipeline-node.active {
-  border-color: var(--accent);
-  color: var(--accent);
-  box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 45%, transparent);
-}
-.pipeline-arrow {
-  font-size: 0.75rem;
-  color: var(--accent);
-  opacity: 0.55;
-  transition: opacity var(--transition);
-}
-.pipeline-arrow.lit { opacity: 1; }
-/* Traveling pulse dot riding the pipeline (GSAP-positioned) */
-.pipeline-pulse {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 8px; height: 8px;
-  margin: -4px 0 0 -4px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 14px 2px color-mix(in srgb, var(--accent) 70%, transparent);
-  opacity: 0;
-  pointer-events: none;
-  z-index: 2;
-}
-
 /* ── Project live link button ─────────────────────────────── */
 .project-link {
   display: inline-flex;
@@ -2786,8 +2805,15 @@ body.cs-open { overflow: hidden; }
 }
 
 @media (max-width: 480px) {
-  .pipeline-flow { display: none; }
-  .project-mockup { border-radius: 10px; }
+  /* Agent-flow composition on small phones: tighter type so the floating
+     payload chips fit the narrow canvas without piling up. */
+  .af-chip { font-size: 0.58rem; padding: 5px 9px; gap: 6px; }
+  .af-node { width: 38px; height: 38px; }
+  .af-node-dot { border-radius: 12px; }
+  .af-node-dot svg { width: 16px; height: 16px; }
+  .af-node-label { font-size: 0.55rem; top: calc(100% + 6px); }
+  .af-head { font-size: 0.56rem; }
+  .af-status { font-size: 0.58rem; }
 }
 
 /* Mobile performance: backdrop blur is costly on phone GPUs.

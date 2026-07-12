@@ -66,7 +66,7 @@ function animateWhenVisible(target, frame) {
 ───────────────────────────────────────────────────────── */
 function initCertTilt() {
   const MAX = 9; // max tilt in degrees
-  document.querySelectorAll('.cert-card-v2, .stat-card, .project-mockup, .poster-shot').forEach(card => {
+  document.querySelectorAll('.cert-card-v2, .stat-card, .agent-flow, .poster-shot').forEach(card => {
     const spotlight = true; // every tilt target also gets the cursor glare
     card.addEventListener('mousemove', e => {
       const r = card.getBoundingClientRect();
@@ -662,6 +662,13 @@ const PROJECTS = [
     tags: ['Voiceflow', 'Make.com'],
     caseStudy: true,
     accent: '#4F8DFF', accent2: '#6C5CE7',
+    chat: [
+      { from: 'bot',  text: "Hi! I can connect you with our team. What's your name?" },
+      { from: 'user', text: 'Sarah Johnson' },
+      { from: 'bot',  text: "Great. What's your business email?" },
+      { from: 'user', text: 'sarah@company.com' },
+      { from: 'bot',  text: 'Validating and routing', typing: true },
+    ],
   },
   {
     counter: '04 / 05',
@@ -679,6 +686,12 @@ const PROJECTS = [
     tags: ['Voiceflow', 'Make.com', 'Airtable'],
     caseStudy: true,
     accent: '#2DD4BF', accent2: '#22D3EE',
+    chat: [
+      { from: 'bot',  text: 'Hello! How can I help today?' },
+      { from: 'user', text: 'Refund for order #4821 please' },
+      { from: 'bot',  text: 'Found it. Starting the refund workflow now.' },
+      { from: 'bot',  text: 'Routing ticket to Airtable', typing: true },
+    ],
   },
   {
     counter: '05 / 05',
@@ -696,6 +709,13 @@ const PROJECTS = [
     tags: ['Voiceflow', 'Make.com', 'Airtable'],
     caseStudy: true,
     accent: '#E879C9', accent2: '#C084FC',
+    chat: [
+      { from: 'bot',  text: "What's the occasion?" },
+      { from: 'user', text: 'Date night, something romantic' },
+      { from: 'bot',  text: 'Velvet Oud: deep, warm and sensual. A bestseller.' },
+      { from: 'user', text: 'Love it!' },
+      { from: 'bot',  text: 'Sending your offer', typing: true },
+    ],
   },
 ];
 
@@ -944,7 +964,7 @@ function projectActionsHTML(p, i) {
    visual landing over the letters; phase B sweeps a striped accent
    band through while the stats / description / CTAs parallax in.
    Everything is driven by one scrubbed timeline; ambient loops (media
-   float, chat pipelines) run unscrubbed and only on the active beat.
+   float, agent-flow runs) run unscrubbed and only on the active beat.
    Mobile and reduced-motion bail here and use the static mini-posters
    built by initProjectsMobile instead.
 ───────────────────────────────────────────────────── */
@@ -955,14 +975,14 @@ function initProjectsScroll() {
   const blocks = gsap.utils.toArray('.projects-scroll .project-visual-block');
   if (!stage || !blocks.length) return;
 
-  // Build the poster layers per block. The visual (screenshot / chat mockup)
+  // Build the poster layers per block. The visual (screenshot / agent flow)
   // is authored in HTML; everything else is injected from PROJECTS[]. The
   // media gets an inner .media-float wrapper so the ambient float never
   // fights the scrubbed transform on .stage-media (same separation the
   // cursor tilt uses on the visual itself).
   const layers = blocks.map((block, i) => {
     const p = PROJECTS[i] || {};
-    const visual = block.querySelector('.project-mockup, .poster-shot');
+    const visual = block.querySelector('.agent-flow, .poster-shot');
 
     applyAccent(block, p);
 
@@ -1010,6 +1030,22 @@ function initProjectsScroll() {
       `</div>`;
     block.appendChild(meta);
 
+    // Live-chat HUD panel (bot projects only): a compact conversation on the
+    // block's right edge; its messages are revealed by the same agent-flow
+    // run loop (initPipelineAnimation runs after this and queries .pc-msg).
+    let chatPanel = null;
+    if (p.chat) {
+      chatPanel = document.createElement('div');
+      chatPanel.className = 'poster-chat';
+      chatPanel.innerHTML =
+        `<div class="pc-head"><i></i>Live chat</div>` +
+        p.chat.map(m =>
+          `<div class="pc-msg ${m.from}"><span class="pc-bubble">${m.text}` +
+          (m.typing ? `<span class="pc-dots"><span>.</span><span>.</span><span>.</span></span>` : '') +
+          `</span></div>`).join('');
+      block.appendChild(chatPanel);
+    }
+
     const panel = document.createElement('div');
     panel.className = 'poster-panel';
     panel.innerHTML =
@@ -1026,7 +1062,7 @@ function initProjectsScroll() {
       block, glow,
       castItems: gsap.utils.toArray(cast.children),
       chars: gsap.utils.toArray(title.querySelectorAll('.pt-char')),
-      title, media: wrap, float, band, meta,
+      title, media: wrap, float, band, meta, chatPanel,
       panel,
       stats: gsap.utils.toArray(panel.querySelectorAll('.poster-stat')),
       info:  gsap.utils.toArray(panel.querySelectorAll('.poster-info > *')),
@@ -1064,6 +1100,7 @@ function initProjectsScroll() {
     gsap.set(L.chars, { yPercent: 60, autoAlpha: 0 });
     gsap.set(L.castItems, { y: 24, autoAlpha: 0 });
     gsap.set(L.meta, { autoAlpha: 0 });
+    if (L.chatPanel) gsap.set(L.chatPanel, { autoAlpha: 0, x: 36 });
     gsap.set(L.glow, { scale: 0.7, opacity: 0.22 });
     gsap.set(L.band, { xPercent: -120, autoAlpha: 0 });
     gsap.set(L.stats, { y: 40, autoAlpha: 0 });
@@ -1072,7 +1109,7 @@ function initProjectsScroll() {
   setActive(0);
 
   // Ambient idle float on the inner wrapper, registered per project so only
-  // the active beat animates (chat pipeline loops join the same registry).
+  // the active beat animates (agent-flow run loops join the same registry).
   layers.forEach((L, i) => {
     const floatTl = gsap.timeline({ repeat: -1, yoyo: true, paused: true })
       .to(L.float, { y: -8, duration: 3.2, ease: 'sine.inOut' });
@@ -1114,6 +1151,7 @@ function initProjectsScroll() {
       .to(L.glow, { scale: 1.05, opacity: 0.5, duration: 0.6 }, t + 0.10)
       .to(L.media, { y: 0, scale: 1, autoAlpha: 1, duration: 0.55, ease: 'power2.out' }, t + 0.40)
       .to(L.meta, { autoAlpha: 1, duration: 0.3 }, t + 0.20);
+    if (L.chatPanel) tl.to(L.chatPanel, { autoAlpha: 1, x: 0, duration: 0.35, ease: 'power2.out' }, t + 0.60);
 
     /* Phase B — band sweep + data layer (title recedes, media makes room) */
     tl.to(L.band, { autoAlpha: 0.85, duration: 0.08 }, t + 0.95)
@@ -1127,7 +1165,7 @@ function initProjectsScroll() {
 
     /* Handoff — all but the last poster fly out past the camera */
     if (i < blocks.length - 1) {
-      tl.to([L.panel, L.meta], { autoAlpha: 0, y: -30, duration: 0.15, ease: 'power2.in' }, t + 1.80)
+      tl.to([L.panel, L.meta, L.chatPanel].filter(Boolean), { autoAlpha: 0, y: -30, duration: 0.15, ease: 'power2.in' }, t + 1.80)
         .to(L.chars, { yPercent: -40, autoAlpha: 0, duration: 0.15, stagger: 0.006 }, t + 1.82)
         .to(L.castItems, { autoAlpha: 0, duration: 0.12 }, t + 1.82)
         .to(L.media, { scale: 1.1, autoAlpha: 0, duration: 0.15, ease: 'power2.in' }, t + 1.85)
@@ -1243,9 +1281,9 @@ function initCaseStudyModal() {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   PIPELINE NODE ANIMATION (cycling active state)
+   AGENT FLOW RUN ANIMATION (nodes, wires, packet, payload chips)
 ───────────────────────────────────────────────────────── */
-/* Registry of per-project ambient timelines (media float, chat pipeline
+/* Registry of per-project ambient timelines (media float, agent-flow
    loops); the cinematic stage plays only the active project's loops and
    pauses the rest. A project can own several, so each slot is an array. */
 const projectTL = {};
@@ -1264,65 +1302,90 @@ function playProjectTL(index) {
     projectTL[k].forEach(tl => { if (+k === index) tl.restart(); else tl.pause(); });
   });
 }
-/* Glossy sheen-sweep layer (prepended so the real last-child keeps its bottom
-   rounding; the streak itself loops via CSS). */
-function addSheen(mockup) {
-  if (mockup.querySelector('.mockup-sheen')) return;
-  const sheen = document.createElement('div');
-  sheen.className = 'mockup-sheen';
-  sheen.innerHTML = '<span></span>';
-  mockup.prepend(sheen);
-}
-
 /* ─────────────────────────────────────────────────────────────
-   CHAT MOCKUPS (03-05) — GSAP loop: staggered message reveal, then
-   a pulse travels down the pipeline lighting nodes in sequence.
+   AGENT FLOW (03-05) — GSAP loop over the chromeless automation-run
+   composition: each step's node lights up and its payload chip pops
+   in, then the data packet rides the curved SVG wire to the next
+   node (cx/cy via getPointAtLength — no MotionPathPlugin) while the
+   accent wire draws on beneath it. Ends on the run-complete readout.
 ───────────────────────────────────────────────────────── */
 function initPipelineAnimation() {
-  document.querySelectorAll('.chat-mockup').forEach(mockup => {
-    const block = mockup.closest('.project-visual-block');
+  document.querySelectorAll('.agent-flow').forEach(flow => {
+    const block = flow.closest('.project-visual-block');
     const index = block ? +block.dataset.project : 0;
-    addSheen(mockup);
 
-    const msgs   = gsap.utils.toArray(mockup.querySelectorAll('.chat-msg'));
-    const flow   = mockup.querySelector('.pipeline-flow');
-    const nodes  = flow ? gsap.utils.toArray(flow.querySelectorAll('.pipeline-node')) : [];
-    const arrows = flow ? gsap.utils.toArray(flow.querySelectorAll('.pipeline-arrow')) : [];
+    const nodes  = gsap.utils.toArray(flow.querySelectorAll('.af-node'));
+    const wires  = gsap.utils.toArray(flow.querySelectorAll('.af-wire'));
+    const chips  = gsap.utils.toArray(flow.querySelectorAll('.af-chip'));
+    const packet = flow.querySelector('.af-packet');
+    const status = flow.querySelector('.af-status');
+    // Live-chat HUD messages (block-level layer injected by initProjectsScroll
+    // on desktop; empty array on mobile where the layer never exists).
+    const msgs   = block ? gsap.utils.toArray(block.querySelectorAll('.pc-msg')) : [];
 
-    // Reduced motion: show the finished conversation + lit last node, no loop.
+    // GSAP owns the chips' transform: center-anchor on the inline left/top
+    // percentages + push forward for the tilt parallax (CSS keeps hands off).
+    gsap.set(chips, { xPercent: -50, yPercent: -50, z: 34 });
+
+    // Reduced motion: pin the finished run, no loop.
     if (PREFERS_REDUCED_MOTION) {
-      msgs.forEach(m => gsap.set(m, { opacity: 1, y: 0 }));
-      if (nodes.length) nodes[nodes.length - 1].classList.add('active');
+      nodes.forEach((n, i) => n.classList.add(i === nodes.length - 1 ? 'active' : 'done'));
+      wires.forEach(w => w.classList.add('lit'));
+      gsap.set(chips, { opacity: 1 });
+      if (msgs.length) gsap.set(msgs, { opacity: 1 });
+      if (status) gsap.set(status, { opacity: 1 });
       return;
     }
 
-    let pulse = null;
-    if (flow) { pulse = document.createElement('div'); pulse.className = 'pipeline-pulse'; flow.appendChild(pulse); }
+    const STEP = 1.05; // seconds per node→node hop
+    const tl = gsap.timeline({ repeat: -1, repeatDelay: 1.6, paused: true });
 
-    const tl = gsap.timeline({ repeat: -1, repeatDelay: 1.1, paused: true });
-
-    tl.set(msgs, { opacity: 0, y: 14 })
-      .add(() => {
-        nodes.forEach(n => n.classList.remove('active'));
-        arrows.forEach(a => a.classList.remove('lit'));
-        if (pulse) gsap.set(pulse, { opacity: 0 });
+    tl.add(() => {
+        nodes.forEach(n => n.classList.remove('active', 'done'));
+        wires.forEach(w => w.classList.remove('lit'));
+        if (packet) gsap.set(packet, { opacity: 0 });
       }, 0)
-      .to(msgs, { opacity: 1, y: 0, duration: 0.4, stagger: 0.55, ease: 'power3.out' }, 0.2);
-
-    const pStart = 0.2 + msgs.length * 0.55 + 0.3;
-    if (nodes.length && pulse) {
-      tl.set(pulse, { opacity: 1, left: () => nodes[0].offsetLeft + nodes[0].offsetWidth / 2 }, pStart);
-      nodes.forEach((node, n) => {
-        const at = pStart + n * 0.5;
-        tl.add(() => {
-          nodes.forEach(x => x.classList.remove('active'));
-          node.classList.add('active');
-          if (arrows[n - 1]) arrows[n - 1].classList.add('lit');
-        }, at);
-        tl.to(pulse, { left: () => node.offsetLeft + node.offsetWidth / 2, duration: 0.45, ease: 'power1.inOut' }, at);
+      .set(chips, { opacity: 0, y: 12, scale: 0.94 }, 0)
+      .set(status, { opacity: 0, y: 6 }, 0);
+    if (msgs.length) {
+      tl.set(msgs, { opacity: 0, y: 10 }, 0);
+      msgs.forEach((m, k) => {
+        tl.to(m, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' }, 0.45 + k * 0.85);
       });
-      tl.to(pulse, { opacity: 0, duration: 0.3 }, pStart + nodes.length * 0.5);
     }
+
+    nodes.forEach((node, n) => {
+      const at = 0.25 + n * STEP;
+      tl.add(() => {
+        nodes.forEach((x, i) => {
+          x.classList.toggle('active', i === n);
+          x.classList.toggle('done', i < n);
+        });
+      }, at);
+      if (chips[n]) {
+        tl.to(chips[n], { opacity: 1, y: 0, scale: 1, duration: 0.45, ease: 'back.out(1.6)' }, at + 0.12);
+      }
+      // Packet departs for the next node; the wire draws on beneath it.
+      const wire = wires[n];
+      if (wire && packet) {
+        const prog = { t: 0 };
+        tl.add(() => { wire.classList.add('lit'); }, at + 0.35)
+          .set(packet, { opacity: 1 }, at + 0.35)
+          .to(prog, {
+            t: 1, duration: STEP - 0.35, ease: 'power1.inOut',
+            onUpdate: () => {
+              const pt = wire.getPointAtLength(prog.t * wire.getTotalLength());
+              packet.setAttribute('cx', pt.x);
+              packet.setAttribute('cy', pt.y);
+            }
+          }, at + 0.35);
+      }
+    });
+
+    const endAt = 0.25 + nodes.length * STEP;
+    if (packet) tl.to(packet, { opacity: 0, duration: 0.25 }, endAt - 0.35);
+    if (status) tl.to(status, { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }, endAt);
+    tl.add(() => {}, endAt + 1.3); // hold the completed board before the reset
 
     registerProjectTL(index, tl);
   });

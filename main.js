@@ -1059,7 +1059,7 @@ function initProjectsScroll() {
   // scrolled pixel begins the arrival (scrub owns all of these tweens).
   layers.forEach((L, i) => {
     gsap.set(L.block, { autoAlpha: i === 0 ? 1 : 0 });
-    gsap.set(L.media, { xPercent: -50, yPercent: -50, y: 80, scale: 0.82, autoAlpha: 0 });
+    gsap.set(L.media, { xPercent: -50, y: 80, scale: 0.82, autoAlpha: 0 });
     gsap.set(L.title, { yPercent: -50 });
     gsap.set(L.chars, { yPercent: 60, autoAlpha: 0 });
     gsap.set(L.castItems, { y: 24, autoAlpha: 0 });
@@ -1112,14 +1112,15 @@ function initProjectsScroll() {
                      stagger: { each: 0.02, from: 'center' } }, t + 0.05)
       .to(L.castItems, { y: 0, autoAlpha: 1, duration: 0.35, stagger: 0.05 }, t + 0.05)
       .to(L.glow, { scale: 1.05, opacity: 0.5, duration: 0.6 }, t + 0.10)
-      .to(L.media, { y: 0, scale: 1, autoAlpha: 1, duration: 0.55, ease: 'power2.out' }, t + 0.15)
+      .to(L.media, { y: 0, scale: 1, autoAlpha: 1, duration: 0.55, ease: 'power2.out' }, t + 0.40)
       .to(L.meta, { autoAlpha: 1, duration: 0.3 }, t + 0.20);
 
     /* Phase B — band sweep + data layer (title recedes, media makes room) */
     tl.to(L.band, { autoAlpha: 0.85, duration: 0.08 }, t + 0.95)
       .to(L.band, { xPercent: 120, duration: 0.5 }, t + 0.95)
       .to(L.band, { autoAlpha: 0, duration: 0.12 }, t + 1.33)
-      .to(L.title, { yPercent: -64, autoAlpha: 0.25, duration: 0.5 }, t + 1.05)
+      .to(L.title, { y: -90, autoAlpha: 0.5, duration: 0.5 }, t + 1.05)
+      .to(L.castItems, { autoAlpha: 0.45, duration: 0.4 }, t + 1.05)
       .to(L.media, { y: -60, scale: 0.88, duration: 0.5 }, t + 1.05)
       .to(L.stats, { y: 0, autoAlpha: 1, duration: 0.35, ease: 'power3.out', stagger: 0.08 }, t + 1.15)
       .to(L.info,  { y: 0, autoAlpha: 1, duration: 0.3,  ease: 'power3.out', stagger: 0.06 }, t + 1.28);

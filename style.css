@@ -1150,7 +1150,7 @@ img { display: block; max-width: 100%; }
    drift on their own CSS loops (auto-paused offscreen / under reduced motion). */
 .stage-glow {
   position: absolute;
-  left: 50%; top: 52%; /* sits behind the centered poster media */
+  left: 50%; top: 56%; /* sits behind the centered poster media */
   width: min(880px, 62vw);
   height: min(760px, 80vh);
   transform: translate(-50%, -50%);
@@ -1183,20 +1183,31 @@ img { display: block; max-width: 100%; }
 @keyframes mesh-a { 0%,100% { transform: translate(0,0) scale(1); }    50% { transform: translate(14%,9%) scale(1.18); } }
 @keyframes mesh-b { 0%,100% { transform: translate(0,0) scale(1.06); } 50% { transform: translate(-12%,11%) scale(0.9); } }
 @keyframes mesh-c { 0%,100% { transform: translate(0,0) scale(0.95); } 50% { transform: translate(9%,-11%) scale(1.12); } }
-/* Media centerpiece: absolutely centered, slightly below the title's optical
-   center so the giant letters peek out on both sides (movie-poster occlusion).
-   GSAP owns this element's transform (xPercent/yPercent centering + scroll
+/* Media centerpiece: horizontally centered, TOP-anchored just below the
+   title's baseline so the visual only clips the bottom edge of the giant
+   letters no matter how tall it is (screenshots ~300px vs chat mockups
+   ~440px). GSAP owns this element's transform (xPercent centering + scroll
    beats); the ambient float lives on the inner .media-float wrapper. */
 .projects-stage.cinematic .stage-media {
   position: absolute;
   z-index: 2;
-  left: 50%; top: 52%;
-  width: min(680px, 46vw);
+  left: 50%; top: 42%;
+  width: min(640px, 42vw);
   will-change: transform;
 }
 .media-float { will-change: transform; }
 .stage-media .project-mockup,
 .stage-media .poster-shot { width: 100%; max-width: none; }
+/* Chat mockups are content-sized and breathe as the pipeline loop adds
+   bubbles (up to ~600px) — cap them inside the poster stage, anchored to
+   the bottom so the newest messages stay in frame and older ones clip off
+   the top like a live chat. (Costs the bubbles' translateZ parallax here:
+   overflow clipping flattens preserve-3d — acceptable inside the stage.) */
+.projects-stage.cinematic .stage-media .chat-window {
+  max-height: min(42vh, 380px);
+  overflow: hidden;
+  justify-content: flex-end;
+}
 
 /* ── Poster layers (injected by initProjectsScroll) ─────────── */
 /* Cast row: the tech "starring" strip across the top */
@@ -1225,7 +1236,7 @@ img { display: block; max-width: 100%; }
   position: absolute;
   z-index: 1;
   left: 0; right: 0;
-  top: 38%;
+  top: 31%;
   transform: translateY(-50%);
   margin: 0;
   font-family: var(--font-display);
